@@ -1,0 +1,37 @@
+# Nexus reads Rust comments with rustc's lexer
+
+## Decision
+
+<[nexus.self]> reads the links in every comment of a Rust file, plain and
+doc comments alike, and nothing else of it. It finds them with
+`ra-ap-rustc_lexer`, rustc's own lexer as published for rust-analyzer
+(<[rust.module nexus::rust_comment]>). Each run of comment lines on
+consecutive lines is read as Markdown, so inline code and code blocks hold
+examples, as in Markdown files, and is one of the units <[nexus.find]>
+searches, titled by the line of code it is about. WIT files are read the
+same way
+(<[markdown.section adrs/reads-wit-with-wit-parser.md "Decision"]>).
+
+## Why
+
+The rule against naming the code base in prose holds for every comment,
+and most comments are plain ones, so their links need checking too. The
+lexer gives every comment token with its length, so a link's position in
+the source is exact, and it costs no build. It is rustc's definition of
+Rust's tokens, so strings, raw strings, lifetimes and nested block comments
+are told apart as the compiler does.
+
+## Alternatives
+
+- **syn or proc-macro2**, already used to find modules
+  (<[markdown.section adrs/reads-rust-with-syn.md "Decision"]>): no
+  new dependency, but both drop plain comments and keep only doc comments,
+  as attributes, so links in plain comments would go unchecked.
+- **A lexer of our own**: no dependency, but repeats what rustc's lexer
+  already gets right, including the corner cases.
+
+The lexer's crate is versioned with rustc and gives no stability promise;
+the part used here, comment tokens, has not changed in years. It requires
+`unicode-ident` and `unicode-properties` on the same Unicode version, so
+`unicode-ident` is held back in the lock file until `unicode-properties`
+catches up.

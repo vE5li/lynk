@@ -1,0 +1,16 @@
+[package]
+name = "nexus"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+clap = { version = "4.6.7", features = ["derive"] }
+ignore = "0.4"
+proc-macro2 = { version = "1", features = ["span-locations"] }
+pulldown-cmark = { version = "0.13", default-features = false }
+ra-ap-rustc_lexer = "0.177.0"
+serde_json = "1"
+syn = { version = "2", default-features = false, features = ["clone-impls", "full", "parsing", "printing", "visit"] }
+toml = "0.9"
+ureq = { version = "3", features = ["json"] }
+wit-parser = { version = "0.246", default-features = false, features = ["std"] }
