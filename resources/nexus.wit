@@ -1,0 +1,53 @@
+package nexus:tool;
+
+/// <[nexus.self]> as a component: the links of a repository, checked and
+/// followed. Links are written as
+/// <[markdown.section README.md "Link syntax"]> defines them.
+interface links {
+    /// A place in a file, as <[rust.module nexus::location]> counts it: path
+    /// relative to the root, line and column from 1.
+    record span {
+        path: string,
+        line: u32,
+        column: u32,
+    }
+
+    /// A link that fails <[nexus.lint]>, and why.
+    record problem {
+        at: span,
+        message: string,
+    }
+
+    /// A repository and the links of its documents, the files
+    /// <[rust.module nexus::workspace]> reads.
+    resource workspace {
+        /// Reads every document under `root`, the repository's root
+        /// directory, as <[markdown.section README.md "Commands"]> defines it.
+        constructor(root: string);
+        /// The root above `directory`, the nearest one up holding a
+        /// repository's own directory, as
+        /// <[markdown.line README.md "directory up holding `.jj` or `.git`"]>
+        /// names them.
+        find-root: static func(directory: string) -> option<string>;
+        /// Checks every link, as <[nexus.lint]> does.
+        lint: func() -> list<problem>;
+        /// The spans a link points at, as <[nexus.where]> prints them.
+        locate: func(link: string) -> result<list<span>, string>;
+        /// The places linking to what a link points at, found as
+        /// <[nexus.ref]> finds them: through the spans of
+        /// <[wit.function resources/nexus.wit workspace.locate]>.
+        references: func(link: string) -> result<list<span>, string>;
+    }
+
+    /// The parts of the documentation matching `words`, best first, as
+    /// <[nexus.find]> lists them.
+    find: func(root: string, words: list<string>) -> list<span>;
+}
+
+/// <[nexus.self]> with its command line.
+world tool {
+    export links;
+    /// Runs the command line <[markdown.section README.md "Commands"]>
+    /// describes, returning its exit code.
+    export run: func(arguments: list<string>) -> u8;
+}
