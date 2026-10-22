@@ -78,23 +78,6 @@
         cargo run --quiet --release --manifest-path "$root/Cargo.toml" -- --root "$root" "$@"
       '';
 
-      cargo-fmt-command = ''
-        cargo fmt --all -- \
-          --config condense_wildcard_suffixes=true \
-          --config edition=2024 \
-          --config fn_call_width=80 \
-          --config format_macro_matchers=true \
-          --config format_strings=true \
-          --config group_imports=StdExternalCrate \
-          --config hex_literal_case=Upper \
-          --config imports_granularity=Module \
-          --config max_width=140 \
-          --config overflow_delimited_expr=true \
-          --config reorder_impl_items=true \
-          --config style_edition=2024 \
-          --config use_field_init_shorthand=true \
-          --config wrap_comments=true'';
-
       format = pkgs.writeShellApplication {
         name = "format";
         runtimeInputs = [format-nix format-toml format-rust];
@@ -120,7 +103,7 @@
         runtimeInputs = [toolchain];
         text = ''
           cargo fmt --all -- \
-            --config condense_wildcard_suffixes=true,edition=2021,fn_call_width=80,format_macro_matchers=true,format_strings=true,group_imports=StdExternalCrate,hex_literal_case=Upper,imports_granularity=Module,max_width=140,overflow_delimited_expr=true,reorder_impl_items=true,style_edition=2024,use_field_init_shorthand=true,wrap_comments=true
+            --config condense_wildcard_suffixes=true,edition=2024,fn_call_width=80,format_macro_matchers=true,format_strings=true,group_imports=StdExternalCrate,hex_literal_case=Upper,imports_granularity=Module,max_width=140,overflow_delimited_expr=true,reorder_impl_items=true,style_edition=2024,use_field_init_shorthand=true,wrap_comments=true
         '';
       };
 
@@ -129,7 +112,7 @@
         runtimeInputs = [toolchain];
         text = ''
           cargo fmt --all -- --check \
-            --config condense_wildcard_suffixes=true,edition=2021,fn_call_width=80,format_macro_matchers=true,format_strings=true,group_imports=StdExternalCrate,hex_literal_case=Upper,imports_granularity=Module,max_width=140,overflow_delimited_expr=true,reorder_impl_items=true,style_edition=2024,use_field_init_shorthand=true,wrap_comments=true
+            --config condense_wildcard_suffixes=true,edition=2024,fn_call_width=80,format_macro_matchers=true,format_strings=true,group_imports=StdExternalCrate,hex_literal_case=Upper,imports_granularity=Module,max_width=140,overflow_delimited_expr=true,reorder_impl_items=true,style_edition=2024,use_field_init_shorthand=true,wrap_comments=true
         '';
       };
 
