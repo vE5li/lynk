@@ -31,11 +31,11 @@ impl Workspace {
             let text = std::fs::read_to_string(entry.path())?;
             let relative_path = entry.path().strip_prefix(&root).unwrap_or(entry.path()).to_owned();
             let document = Document::parse(relative_path, format, text);
-            let (links, syntax_errors) = find_links(&document);
+            let found = find_links(&document);
             documents.push(LinkedDocument {
                 document,
-                links,
-                syntax_errors,
+                links: found.links,
+                syntax_errors: found.errors,
             });
         }
         documents.sort_by(|first, second| first.document.path.cmp(&second.document.path));
@@ -47,8 +47,8 @@ impl Workspace {
     }
 }
 
-/// The nearest ancestor of <[rust.argument start]> holding a `.jj` or `.git`
-/// directory.
+/// The nearest ancestor of [`start`](nexus:rust.argument) holding a `.jj` or
+/// `.git` directory.
 pub fn find_root(start: &Path) -> Option<PathBuf> {
     start
         .ancestors()

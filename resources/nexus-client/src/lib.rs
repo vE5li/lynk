@@ -1,5 +1,5 @@
-//! A client of <[nexus.self]>: runs its command line and reads what it
-//! prints, offering in Rust what <[filesystem.file resources/nexus.wit]>
+//! A client of [nexus](nexus:nexus.self): runs its command line and reads what it
+//! prints, offering in Rust what [`resources/nexus.wit`](nexus:filesystem.file)
 //! offers as a component.
 
 pub mod span;
@@ -24,24 +24,24 @@ pub mod workspace {
     }
 
     impl Workspace {
-        /// The repository whose root directory is <[rust.argument root]>.
+        /// The repository whose root directory is [`root`](nexus:rust.argument).
         pub fn new(root: impl Into<PathBuf>) -> Self {
             Self { root: root.into() }
         }
 
-        /// Every link failing <[nexus.lint]>, and why.
+        /// Every link failing [`nexus lint`](nexus:nexus.lint), and why.
         pub fn lint(&self) -> Result<Vec<Problem>, String> {
             let output = run::nexus(&self.root, &["lint"])?;
             Ok(output.stdout.lines().filter_map(Problem::parse).collect())
         }
 
-        /// The spans a link points at, as <[nexus.where]> prints them: the
+        /// The spans a link points at, as [`nexus where`](nexus:nexus.where) prints them: the
         /// link is its `<provider.selector>` and its arguments, unquoted.
         pub fn locate(&self, selector: &str, arguments: &[&str]) -> Result<Vec<Span>, String> {
             self.spans("where", selector, arguments)
         }
 
-        /// The places linking to what a link points at, as <[nexus.ref]>
+        /// The places linking to what a link points at, as [`nexus ref`](nexus:nexus.ref)
         /// prints them.
         pub fn references(&self, selector: &str, arguments: &[&str]) -> Result<Vec<Span>, String> {
             self.spans("ref", selector, arguments)
@@ -60,8 +60,8 @@ pub mod workspace {
         }
 
         /// The parts of the documentation matching
-        /// <[rust.argument words]>, best first, as
-        /// <[nexus.find]> lists them.
+        /// [`words`](nexus:rust.argument), best first, as
+        /// [`nexus find`](nexus:nexus.find) lists them.
         pub fn find(&self, words: &[&str]) -> Result<Vec<Span>, String> {
             let mut command_line = vec!["find"];
             command_line.extend_from_slice(words);

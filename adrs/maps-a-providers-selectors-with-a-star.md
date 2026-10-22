@@ -2,13 +2,14 @@
 
 ## Decision
 
-Any provider of <[nexus.self]> can be linked as `<provider>.*`, a complete
-map of its selectors (<[markdown.section README.md "Link syntax"]>). It is
+Any provider of [nexus](nexus:nexus.self) can be linked as `<provider>.*`,
+a complete map of its selectors (the README's
+[Link syntax](nexus:markdown.section (README.md))). It is
 syntax rather than a selector: it is not listed among the selectors, and
 it asks nothing of its descriptions. Text exercising or describing every
 selector of a provider, like
-<[filesystem.file adrs/lints-its-providers-against-resources.md]>, uses
-it so that adding a selector fails <[nexus.lint]> until the text follows.
+[`adrs/lints-its-providers-against-resources.md`](nexus:filesystem.file),
+uses it so that adding a selector fails [`nexus lint`](nexus:nexus.lint) until the text follows.
 Nothing requires a provider to be mapped anywhere.
 
 Bodies may nest lists and links, so the links exercising a selector sit

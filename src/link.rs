@@ -2,8 +2,13 @@ use std::ops::Range;
 
 use crate::document::Document;
 
-const OPENING: &str = "<[";
-const CLOSING: &str = "]>";
+/// What a Markdown link's destination starts with to be a link to check.
+const SCHEME: &str = "nexus:";
+const COMMENT_OPENING: &str = "<!--";
+const COMMENT_CLOSING: &str = "-->";
+/// The word opening a map's comment.
+const MAP_KEYWORD: &str = "nexus";
+const MAP_CLOSING: &str = "<!-- /nexus -->";
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Argument {
@@ -22,12 +27,31 @@ pub struct Member {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Link {
     pub selector_name: String,
-    /// From the end of the selector name to the closing delimiter.
-    pub content: Range<usize>,
-    /// The links nested in the content, at any depth.
+    pub content: Content,
+    /// The links inside it, at any depth.
     pub nested: Vec<Range<usize>>,
-    /// From the opening to the closing delimiter, both included.
+    /// The whole link: from its `[` to its end, or from a map's opening
+    /// comment to its closing one.
     pub range: Range<usize>,
+}
+
+/// What a link holds besides its selector name, for its selector to read.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Content {
+    /// A Markdown link's title, if any, and its text.
+    Inline { title: Option<String>, text: String },
+    /// A map's arguments, in its opening comment, and its body, the lines
+    /// between its comments.
+    Map { arguments: Range<usize>, body: Range<usize> },
+}
+
+/// How a selector reads a link's content.
+#[derive(Debug, Clone, Copy)]
+pub struct Shape {
+    /// Whether it is a map selector, taking a body.
+    pub map: bool,
+    /// Whether it takes any argument, its last one being a link's text.
+    pub takes_arguments: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -36,217 +60,283 @@ pub struct SyntaxError {
     pub offset: usize,
 }
 
-/// Every link of the document's prose outside code, those nested in another
-/// right after the link holding them, plus what failed to parse.
-pub fn find_links(document: &Document) -> (Vec<Link>, Vec<SyntaxError>) {
-    let mut links = Vec::new();
-    let mut errors = Vec::new();
-    let mut search_from = 0;
-    while let Some(found) = document.prose[search_from..].find(OPENING) {
-        let start = search_from + found;
-        search_from = start + OPENING.len();
+/// What reading a document's links found.
+#[derive(Debug, Default)]
+pub struct Found {
+    /// Ordered by where they start, a link holding others first.
+    pub links: Vec<Link>,
+    pub errors: Vec<SyntaxError>,
+}
+
+/// Every link of the document's prose outside code, plus what failed to
+/// parse.
+pub fn find_links(document: &Document) -> Found {
+    let mut found = Found::default();
+    find_markdown_links(document, &mut found);
+    find_maps(document, &mut found);
+    found
+        .links
+        .sort_by_key(|link| (link.range.start, std::cmp::Reverse(link.range.end)));
+    let ranges: Vec<Range<usize>> = found.links.iter().map(|link| link.range.clone()).collect();
+    for link in &mut found.links {
+        link.nested = ranges
+            .iter()
+            .filter(|range| **range != link.range && link.range.start <= range.start && range.end <= link.range.end)
+            .cloned()
+            .collect();
+    }
+    found
+}
+
+/// The Markdown links whose destination is a selector after `nexus:`.
+fn find_markdown_links(document: &Document, found: &mut Found) {
+    for markdown_link in &document.markdown_links {
+        let Some(selector_name) = markdown_link.destination.strip_prefix(SCHEME) else {
+            continue;
+        };
+        if !selector_name.contains('.') {
+            found.errors.push(SyntaxError {
+                message: format!("a link's destination is `{SCHEME}<provider>.<selector>`"),
+                offset: markdown_link.range.start,
+            });
+            continue;
+        }
+        found.links.push(Link {
+            selector_name: selector_name.to_owned(),
+            content: Content::Inline {
+                title: markdown_link.title.clone(),
+                text: markdown_link.text.clone(),
+            },
+            nested: Vec::new(),
+            range: markdown_link.range.clone(),
+        });
+    }
+}
+
+/// The maps written between an opening `<!-- nexus <provider>.<selector>
+/// <arguments> -->` and a closing `<!-- /nexus -->`, each starting a line of
+/// prose outside code and ending it; nested maps close innermost first.
+fn find_maps(document: &Document, found: &mut Found) {
+    struct OpenMap {
+        start: usize,
+        /// `None` for one reported already, closed without a link.
+        selector_name: Option<String>,
+        arguments: Range<usize>,
+        body_start: usize,
+    }
+    let text = &document.prose;
+    let mut open: Vec<OpenMap> = Vec::new();
+    let mut line_start = 0;
+    while line_start < text.len() {
+        let line_end = text[line_start..].find('\n').map_or(text.len(), |found| line_start + found);
+        let line = &text[line_start..line_end];
+        let start = line_start + line.len() - line.trim_start().len();
+        let current_start = line_start;
+        line_start = line_end + 1;
         if document.is_code(start) {
             continue;
         }
-        match parse_link(document, start, &mut links) {
-            Ok(end) => search_from = end,
-            Err(error) => errors.push(error),
+        let trimmed = line.trim();
+        if trimmed == MAP_CLOSING {
+            match open.pop() {
+                Some(map) => found.links.extend(map.selector_name.map(|selector_name| Link {
+                    selector_name,
+                    content: Content::Map {
+                        arguments: map.arguments,
+                        body: map.body_start.min(current_start)..current_start,
+                    },
+                    nested: Vec::new(),
+                    range: map.start..start + trimmed.len(),
+                })),
+                None => found.errors.push(SyntaxError {
+                    message: format!("`{MAP_CLOSING}` closes no map"),
+                    offset: start,
+                }),
+            }
+            continue;
         }
-    }
-    (links, errors)
-}
-
-/// Parses the link starting at <[rust.argument start]> into
-/// <[rust.argument links]>, followed by the links nested in it, and returns
-/// where it ends. On failure <[rust.argument links]> is left as it was.
-///
-/// Only the selector name and the link's extent are read here: how the rest
-/// splits into arguments and a body is up to the selector, so line breaks
-/// mean nothing to the link.
-fn parse_link(document: &Document, start: usize, links: &mut Vec<Link>) -> Result<usize, SyntaxError> {
-    let text = &document.prose;
-    let name_start = start + OPENING.len();
-    let name_end = text[name_start..]
-        .char_indices()
-        .find(|&(offset, character)| character.is_whitespace() || text[name_start + offset..].starts_with(CLOSING))
-        .map_or(text.len(), |(offset, _)| name_start + offset);
-    let selector_name = &text[name_start..name_end];
-    if !selector_name.contains('.') || selector_name.contains('"') {
-        return Err(SyntaxError {
-            message: "a link starts with `<provider>.<selector>`".to_owned(),
-            offset: start,
+        let Some(after_opening) = trimmed.strip_prefix(COMMENT_OPENING) else {
+            continue;
+        };
+        let after_spaces = after_opening.trim_start();
+        let opens_map = after_spaces
+            .strip_prefix(MAP_KEYWORD)
+            .is_some_and(|rest| rest.starts_with(char::is_whitespace));
+        if !opens_map {
+            continue;
+        }
+        let keyword_end = start + trimmed.len() - after_spaces.len() + MAP_KEYWORD.len();
+        let Some(comment_end) = text[keyword_end..].find(COMMENT_CLOSING).map(|found| keyword_end + found) else {
+            found.errors.push(SyntaxError {
+                message: format!("a map's opening comment is never closed with `{COMMENT_CLOSING}`"),
+                offset: start,
+            });
+            return;
+        };
+        let after_comment = comment_end + COMMENT_CLOSING.len();
+        let comment_line_end = text[after_comment..].find('\n').map_or(text.len(), |found| after_comment + found);
+        line_start = comment_line_end + 1;
+        // Still opened, so its closing comment does not fail too.
+        if !text[after_comment..comment_line_end].trim().is_empty() {
+            found.errors.push(SyntaxError {
+                message: "a map's opening comment ends its line".to_owned(),
+                offset: after_comment,
+            });
+        }
+        let inside = &text[keyword_end..comment_end];
+        let name_start = keyword_end + inside.len() - inside.trim_start().len();
+        let name_end = text[name_start..comment_end]
+            .find(char::is_whitespace)
+            .map_or(comment_end, |found| name_start + found);
+        let selector_name = &text[name_start..name_end];
+        let valid = selector_name.contains('.');
+        if !valid {
+            found.errors.push(SyntaxError {
+                message: format!("a map opens with `{COMMENT_OPENING} {MAP_KEYWORD} <provider>.<selector>`"),
+                offset: start,
+            });
+        }
+        open.push(OpenMap {
+            start,
+            selector_name: valid.then(|| selector_name.to_owned()),
+            arguments: name_end..comment_end,
+            body_start: line_start.min(text.len()),
         });
     }
-    let mut nested = Vec::new();
-    let content_end = find_closing(document, name_end, &mut nested).ok_or_else(|| SyntaxError {
-        message: format!("link is never closed with `{CLOSING}`"),
-        offset: start,
-    })??;
-    links.push(Link {
-        selector_name: selector_name.to_owned(),
-        content: name_end..content_end,
-        nested: nested.iter().map(|link: &Link| link.range.clone()).collect(),
-        range: start..content_end + CLOSING.len(),
-    });
-    links.append(&mut nested);
-    Ok(content_end + CLOSING.len())
-}
-
-/// The closing delimiter of a link whose content starts at
-/// <[rust.argument from]>, parsing the links nested in it into
-/// <[rust.argument nested]>. Delimiters inside code do not
-/// count, nor do those of nested links; quotes mean nothing here.
-fn find_closing(document: &Document, from: usize, nested: &mut Vec<Link>) -> Option<Result<usize, SyntaxError>> {
-    let text = &document.prose;
-    let mut offset = from;
-    while offset < text.len() {
-        let rest = &text[offset..];
-        let in_code = document.is_code(offset);
-        if !in_code && rest.starts_with(CLOSING) {
-            return Some(Ok(offset));
-        }
-        if !in_code && rest.starts_with(OPENING) {
-            match parse_link(document, offset, nested) {
-                Ok(end) => {
-                    offset = end;
-                    continue;
-                }
-                Err(error) => return Some(Err(error)),
-            }
-        }
-        offset += rest.chars().next().map_or(1, char::len_utf8);
+    for map in open {
+        found.errors.push(SyntaxError {
+            message: format!("map is never closed with `{MAP_CLOSING}`"),
+            offset: map.start,
+        });
     }
-    None
-}
-
-/// What a link holds after its selector name, for its selector to read:
-/// arguments first, then, for selectors taking one, a body.
-#[derive(Debug, Clone)]
-pub struct Content<'a> {
-    prose: &'a str,
-    range: Range<usize>,
-    nested: &'a [Range<usize>],
 }
 
 impl Link {
-    /// <[rust.argument prose]> is that of the document the link was found
-    /// in.
-    pub fn content<'a>(&'a self, prose: &'a str) -> Content<'a> {
-        Content {
-            prose,
-            range: self.content.clone(),
-            nested: &self.nested,
+    /// The link's arguments and, for a map, the members of its body, as a
+    /// selector of [`shape`](nexus:rust.argument) reads them.
+    /// [`prose`](nexus:rust.argument) is that of the document the link was
+    /// found in.
+    pub fn read(&self, prose: &str, shape: Shape) -> Result<(Vec<Argument>, Vec<Member>), SyntaxError> {
+        let error = |message: String| SyntaxError {
+            message,
+            offset: self.range.start,
+        };
+        let name = &self.selector_name;
+        match &self.content {
+            Content::Inline { .. } if shape.map => Err(error(format!(
+                "`{name}` is a map, written between `{COMMENT_OPENING} {MAP_KEYWORD} {name} ... {COMMENT_CLOSING}` and `{MAP_CLOSING}`"
+            ))),
+            // The title holds the arguments before the text.
+            Content::Inline { title, text } => {
+                let mut arguments = arguments(title.as_deref().unwrap_or_default(), self.range.start)?;
+                if shape.takes_arguments && !text.is_empty() {
+                    arguments.push(Argument {
+                        text: text.clone(),
+                        quoted: false,
+                    });
+                }
+                Ok((arguments, Vec::new()))
+            }
+            Content::Map { .. } if !shape.map => Err(error(format!("`{name}` takes no body, so it is written as a link"))),
+            Content::Map {
+                arguments: arguments_range,
+                body,
+            } => {
+                let arguments = arguments(&prose[arguments_range.clone()], arguments_range.start)?;
+                Ok((arguments, members(prose, body.clone(), &self.nested)?))
+            }
         }
     }
 }
 
-impl<'a> Content<'a> {
-    /// The first <[rust.argument count]> arguments, every one when `None`,
-    /// and the content
-    /// left after them. Arguments are separated by whitespace, line breaks
-    /// included, and may be quoted with `"`.
-    pub fn arguments(&self, count: Option<usize>) -> Result<(Vec<Argument>, Content<'a>), SyntaxError> {
-        let text = &self.prose[self.range.clone()];
-        let mut arguments = Vec::new();
-        let mut characters = text.char_indices().peekable();
-        while let Some(&(offset, character)) = characters.peek() {
-            if count.is_some_and(|count| arguments.len() == count) {
-                break;
-            }
-            if character.is_whitespace() {
-                characters.next();
-                continue;
-            }
-            if character != '"' {
-                let mut text = String::new();
-                while let Some(&(_, character)) = characters.peek() {
-                    if character.is_whitespace() {
-                        break;
-                    }
-                    text.push(character);
-                    characters.next();
-                }
-                arguments.push(Argument { text, quoted: false });
-                continue;
-            }
+/// The arguments written in [`text`](nexus:rust.argument), which starts at
+/// [`offset`](nexus:rust.argument) for errors. Arguments are separated by
+/// whitespace, line breaks included, and may be quoted with `"`.
+fn arguments(text: &str, offset: usize) -> Result<Vec<Argument>, SyntaxError> {
+    let mut arguments = Vec::new();
+    let mut characters = text.char_indices().peekable();
+    while let Some(&(character_offset, character)) = characters.peek() {
+        if character.is_whitespace() {
             characters.next();
-            let mut text = String::new();
-            let mut closed = false;
-            while let Some((_, character)) = characters.next() {
-                match character {
-                    '"' => {
-                        closed = true;
-                        break;
-                    }
-                    '\\' => text.extend(characters.next().map(|(_, escaped)| escaped)),
-                    _ => text.push(character),
-                }
-            }
-            if !closed {
-                return Err(SyntaxError {
-                    message: "quoted argument is never closed".to_owned(),
-                    offset: self.range.start + offset,
-                });
-            }
-            arguments.push(Argument { text, quoted: true });
+            continue;
         }
-        let rest_start = characters.peek().map_or(self.range.end, |&(offset, _)| self.range.start + offset);
-        let rest = Content {
-            range: rest_start..self.range.end,
-            ..self.clone()
-        };
-        Ok((arguments, rest))
-    }
-
-    /// The content read as a body of members: each `- <member>:
-    /// <description>` line no more indented than the first, with the lines
-    /// indented further below it, and the links nested in them, as part of
-    /// its description. A body is prose: quotes mean nothing in it.
-    pub fn members(&self) -> Result<Vec<Member>, SyntaxError> {
-        let text = self.prose;
-        let body = self.range.clone();
-        let mut members: Vec<Member> = Vec::new();
-        let mut member_indentation = None;
-        let mut line_start = body.start;
-        while line_start < body.end {
-            let line_end = text[line_start..body.end].find('\n').map_or(body.end, |found| line_start + found);
-            let line = &text[line_start..line_end];
-            let current_start = line_start;
-            line_start = line_end + 1;
-            let indentation = line.len() - line.trim_start().len();
-            let offset = current_start + indentation;
-            let inside_nested = self.nested.iter().any(|range| range.start < offset && offset < range.end);
-            if line.trim().is_empty() {
-                continue;
+        if character != '"' {
+            let mut text = String::new();
+            while let Some(&(_, character)) = characters.peek() {
+                if character.is_whitespace() {
+                    break;
+                }
+                text.push(character);
+                characters.next();
             }
-            // The body may start on the line holding the arguments, after
-            // them; only lines of its own set the members' indentation.
-            let own_line = text[..current_start].ends_with('\n');
-            let continues_member = inside_nested || member_indentation.is_some_and(|member_indentation| indentation > member_indentation);
-            if let Some(member) = members.last_mut().filter(|_| continues_member) {
-                member.range.end = offset + line.trim().len();
-                continue;
+            arguments.push(Argument { text, quoted: false });
+            continue;
+        }
+        characters.next();
+        let mut text = String::new();
+        let mut closed = false;
+        while let Some((_, character)) = characters.next() {
+            match character {
+                '"' => {
+                    closed = true;
+                    break;
+                }
+                '\\' => text.extend(characters.next().map(|(_, escaped)| escaped)),
+                _ => text.push(character),
             }
-            let entry = line.trim().strip_prefix("- ").ok_or_else(|| SyntaxError {
-                message: "a link's body is a list of `- <member>: <description>`".to_owned(),
-                offset,
-            })?;
-            if own_line {
-                member_indentation.get_or_insert(indentation);
-            }
-            let name = entry.split_once(':').map_or(entry, |(name, _)| name);
-            members.push(Member {
-                name: name.trim().to_owned(),
-                description: String::new(),
-                range: offset..offset + line.trim().len(),
+        }
+        if !closed {
+            return Err(SyntaxError {
+                message: "quoted argument is never closed".to_owned(),
+                offset: offset + character_offset,
             });
         }
-        for member in &mut members {
-            let entry = &text[member.range.start + 2..member.range.end];
-            member.description = entry.split_once(':').map_or("", |(_, description)| description).trim().to_owned();
-        }
-        Ok(members)
+        arguments.push(Argument { text, quoted: true });
     }
+    Ok(arguments)
+}
+
+/// The [`body`](nexus:rust.argument) of a map read as members: each
+/// `- <member>: <description>` line no more indented than the first, with the
+/// lines indented further below it, and the links nested in it, as part of
+/// its description. A body is prose: quotes mean nothing in it.
+fn members(text: &str, body: Range<usize>, nested: &[Range<usize>]) -> Result<Vec<Member>, SyntaxError> {
+    let mut members: Vec<Member> = Vec::new();
+    let mut member_indentation = None;
+    let mut line_start = body.start;
+    while line_start < body.end {
+        let line_end = text[line_start..body.end].find('\n').map_or(body.end, |found| line_start + found);
+        let line = &text[line_start..line_end];
+        let current_start = line_start;
+        line_start = line_end + 1;
+        let indentation = line.len() - line.trim_start().len();
+        let offset = current_start + indentation;
+        let inside_nested = nested.iter().any(|range| range.start <= offset && offset < range.end);
+        if line.trim().is_empty() {
+            continue;
+        }
+        let continues_member = inside_nested || member_indentation.is_some_and(|member_indentation| indentation > member_indentation);
+        if let Some(member) = members.last_mut().filter(|_| continues_member) {
+            member.range.end = offset + line.trim().len();
+            continue;
+        }
+        let entry = line.trim().strip_prefix("- ").ok_or_else(|| SyntaxError {
+            message: "a map's body is a list of `- <member>: <description>`".to_owned(),
+            offset,
+        })?;
+        member_indentation.get_or_insert(indentation);
+        let name = entry.split_once(':').map_or(entry, |(name, _)| name);
+        members.push(Member {
+            name: name.trim().to_owned(),
+            description: String::new(),
+            range: offset..offset + line.trim().len(),
+        });
+    }
+    for member in &mut members {
+        let entry = &text[member.range.start + 2..member.range.end];
+        member.description = entry.split_once(':').map_or("", |(_, description)| description).trim().to_owned();
+    }
+    Ok(members)
 }
 
 #[cfg(test)]
@@ -256,171 +346,219 @@ mod tests {
     use super::*;
     use crate::document::Format;
 
-    fn links_in(text: &str) -> (Vec<Link>, Vec<SyntaxError>) {
+    const WITHOUT_BODY: Shape = Shape {
+        map: false,
+        takes_arguments: true,
+    };
+    const MAP: Shape = Shape {
+        map: true,
+        takes_arguments: true,
+    };
+
+    fn found_in(text: &str) -> Found {
         find_links(&Document::parse(PathBuf::from("test.md"), Format::Markdown, text.to_owned()))
     }
 
-    fn links_in_rust(text: &str) -> (Vec<Link>, Vec<SyntaxError>) {
-        find_links(&Document::parse(PathBuf::from("test.rs"), Format::Rust, text.to_owned()))
+    fn links_in(text: &str) -> (Vec<Link>, Vec<SyntaxError>) {
+        let found = found_in(text);
+        (found.links, found.errors)
     }
 
-    /// The members of the body of a link of Markdown <[rust.argument text]>
-    /// after <[rust.argument arguments]> arguments.
-    fn members(text: &str, link: &Link, arguments: usize) -> Vec<Member> {
-        let (_, body) = link.content(text).arguments(Some(arguments)).unwrap();
-        body.members().unwrap()
+    fn links_in_rust(text: &str) -> (Vec<Link>, Vec<SyntaxError>) {
+        let found = find_links(&Document::parse(PathBuf::from("test.rs"), Format::Rust, text.to_owned()));
+        (found.links, found.errors)
+    }
+
+    /// The arguments of a link of Markdown [`text`](nexus:rust.argument)
+    /// read by a selector without a body.
+    fn arguments_of(text: &str, link: &Link) -> Vec<String> {
+        let (arguments, _) = link.read(text, WITHOUT_BODY).unwrap();
+        arguments.into_iter().map(|argument| argument.text).collect()
+    }
+
+    /// The members of the body of a map of Markdown
+    /// [`text`](nexus:rust.argument).
+    fn members(text: &str, link: &Link) -> Vec<Member> {
+        link.read(text, MAP).unwrap().1
     }
 
     #[test]
-    fn parses_bare_and_quoted_arguments() {
-        let text = "See <[markdown.section plans/lsp.md \"Phase \\\"2\\\"\"]> here.";
+    fn reads_the_arguments_of_a_markdown_link_from_its_title_then_its_text() {
+        let text = "See [Phase 2](nexus:markdown.section\n  (\"plans/a b.md\")) here.";
         let (links, errors) = links_in(text);
         assert!(errors.is_empty());
-        assert_eq!(links.len(), 1);
         assert_eq!(links[0].selector_name, "markdown.section");
-        let (arguments, rest) = links[0].content(text).arguments(None).unwrap();
+        assert_eq!(
+            &text[links[0].range.clone()],
+            "[Phase 2](nexus:markdown.section\n  (\"plans/a b.md\"))"
+        );
+        let (arguments, _) = links[0].read(text, WITHOUT_BODY).unwrap();
         assert_eq!(arguments, vec![
             Argument {
-                text: "plans/lsp.md".to_owned(),
-                quoted: false
-            },
-            Argument {
-                text: "Phase \"2\"".to_owned(),
+                text: "plans/a b.md".to_owned(),
                 quoted: true
             },
+            Argument {
+                text: "Phase 2".to_owned(),
+                quoted: false
+            },
         ]);
-        assert!(rest.arguments(None).unwrap().0.is_empty());
     }
 
     #[test]
     fn line_breaks_separate_arguments_like_any_whitespace() {
-        let text = "<[markdown.section plans/lsp.md\n  \"Phase\n  2\"]>";
-        let (links, errors) = links_in(text);
-        assert!(errors.is_empty());
-        let (arguments, _) = links[0].content(text).arguments(None).unwrap();
-        let texts: Vec<_> = arguments.iter().map(|argument| argument.text.as_str()).collect();
-        assert_eq!(texts, vec!["plans/lsp.md", "Phase\n  2"]);
-    }
-
-    #[test]
-    fn parses_a_body_of_members() {
-        let text = "Opcodes:\n<[rust.map-variant crate::Bar\n  - Load: LD\n  - Read: RD\n]>\n";
-        let (links, errors) = links_in(text);
-        assert!(errors.is_empty());
-        let members: Vec<_> = members(text, &links[0], 1)
-            .iter()
-            .map(|member| (member.name.clone(), member.description.clone()))
-            .collect();
-        assert_eq!(members, vec![
-            ("Load".to_owned(), "LD".to_owned()),
-            ("Read".to_owned(), "RD".to_owned())
-        ]);
-    }
-
-    #[test]
-    fn parses_links_nested_in_a_body_as_links_of_their_own() {
-        let text = "<[rust.*\n- module:\n  - Inline: <[rust.module a b]>.\n  - Mapped: <[filesystem.map-entry c\n    - d: e\n  ]>\n- \
-                    unused: not used\n]>\n";
-        let (links, errors) = links_in(text);
-        assert!(errors.is_empty());
-        let selectors: Vec<_> = links.iter().map(|link| link.selector_name.as_str()).collect();
-        assert_eq!(selectors, vec!["rust.*", "rust.module", "filesystem.map-entry"]);
-        let names: Vec<_> = members(text, &links[0], 0).into_iter().map(|member| member.name).collect();
-        assert_eq!(names, vec!["module", "unused"]);
-        assert_eq!(links[0].range, 0..text.len() - 1);
-        assert_eq!(members(text, &links[2], 1)[0].name, "d");
-    }
-
-    #[test]
-    fn a_member_spans_the_nested_link_it_holds() {
-        let text = "<[rust.*\n- module: <[filesystem.map-entry c\n  - d: e\n]> held\n- other\n]>";
-        let (links, errors) = links_in(text);
-        assert!(errors.is_empty());
-        let members = members(text, &links[0], 0);
-        assert_eq!(
-            &text[members[0].range.clone()],
-            "- module: <[filesystem.map-entry c\n  - d: e\n]> held"
-        );
-        assert_eq!(members[1].name, "other");
-    }
-
-    #[test]
-    fn a_body_is_prose_where_code_hides_delimiters_and_quotes_mean_nothing() {
-        let text = "<[rust.*\n- module: `]>` and `<[`, a 12\" ruler\n]>";
-        let (links, errors) = links_in(text);
-        assert!(errors.is_empty());
-        assert_eq!(links.len(), 1);
-        assert_eq!(members(text, &links[0], 0)[0].description, "`]>` and `<[`, a 12\" ruler");
-    }
-
-    #[test]
-    fn code_blocks_in_a_body_hide_links() {
-        let text = "<[rust.*\n- module: like\n  ```\n  <[rust.module a b]>\n  ```\n]>";
-        let (links, errors) = links_in(text);
-        assert!(errors.is_empty());
-        assert_eq!(links.len(), 1);
-        assert_eq!(members(text, &links[0], 0).len(), 1);
-    }
-
-    #[test]
-    fn a_body_line_neither_a_member_nor_below_one_is_an_error() {
-        let text = "<[rust.*\n  - module: a\nloose\n]>";
+        let text = "[c](nexus:a.b (first\n  \"second\n  argument\"))";
         let (links, _) = links_in(text);
-        assert!(links[0].content(text).members().is_err());
+        assert_eq!(arguments_of(text, &links[0]), vec!["first", "second\nargument", "c"]);
     }
 
     #[test]
-    fn ignores_links_in_code() {
-        let (links, errors) = links_in("`<[markdown.section \"A\"]>`\n\n```\n<[markdown.section \"B\"]>\n```\n");
+    fn reports_an_unclosed_quote() {
+        let text = "[c](nexus:a.b (\"first))";
+        let (links, _) = links_in(text);
+        assert!(links[0].read(text, WITHOUT_BODY).is_err());
+    }
+
+    #[test]
+    fn reads_a_links_text_with_code_spans_unwrapped_unless_its_selector_takes_no_arguments() {
+        let text = "[Link\n`syntax`](nexus:markdown.section) and [nexus](nexus:nexus.self)";
+        let (links, _) = links_in(text);
+        assert_eq!(arguments_of(text, &links[0]), vec!["Link syntax"]);
+        let shape = Shape {
+            takes_arguments: false,
+            ..WITHOUT_BODY
+        };
+        assert!(links[1].read(text, shape).unwrap().0.is_empty());
+    }
+
+    #[test]
+    fn reads_reference_links_where_they_are_used() {
+        let text = "Run [`nexus lint`][lint].\n\n[lint]: nexus:nexus.lint\n[web]: https://example.com\n";
+        let (links, errors) = links_in(text);
+        assert!(errors.is_empty());
+        assert_eq!(links.len(), 1);
+        assert_eq!(&text[links[0].range.clone()], "[`nexus lint`][lint]");
+    }
+
+    #[test]
+    fn ignores_markdown_links_elsewhere_and_in_code() {
+        let (links, errors) = links_in("[web](https://example.com) `[a](nexus:a.b)`\n\n```\n[c](nexus:c.d)\n```\n");
         assert!(links.is_empty());
         assert!(errors.is_empty());
     }
 
     #[test]
-    fn quotes_do_not_hide_a_closing_delimiter() {
-        let text = "<[markdown.line \"a ]> b\"]>";
+    fn reports_a_destination_without_a_selector() {
+        assert_eq!(found_in("[a](nexus:self)").errors.len(), 1);
+    }
+
+    #[test]
+    fn reads_a_map_between_comments() {
+        let text =
+            "Opcodes:\n<!-- nexus rust.map-variant\n  crate::Bar -->\n- Load: LD\n- Read: [RD](nexus:a.b)\n<!-- /nexus -->\nAfter.\n";
+        let (links, errors) = links_in(text);
+        assert!(errors.is_empty(), "{errors:?}");
+        assert_eq!(links[0].selector_name, "rust.map-variant");
+        assert!(text[links[0].range.clone()].ends_with("<!-- /nexus -->"));
+        assert_eq!(links[0].nested, vec![links[1].range.clone()]);
+        let (arguments, members) = links[0].read(text, MAP).unwrap();
+        assert_eq!(arguments[0].text, "crate::Bar");
+        let members: Vec<_> = members
+            .iter()
+            .map(|member| (member.name.as_str(), member.description.as_str()))
+            .collect();
+        assert_eq!(members, vec![("Load", "LD"), ("Read", "[RD](nexus:a.b)")]);
+    }
+
+    #[test]
+    fn nested_maps_close_innermost_first_and_belong_to_the_member_holding_them() {
+        let text = "<!-- nexus rust.* -->\n- module:\n  - Inline: [`a`](nexus:rust.module).\n  - Mapped:\n    <!-- nexus \
+                    filesystem.map-entry c -->\n    - d: e\n    <!-- /nexus -->\n- unused: not used\n<!-- /nexus -->\n";
+        let (links, errors) = links_in(text);
+        assert!(errors.is_empty(), "{errors:?}");
+        let selectors: Vec<_> = links.iter().map(|link| link.selector_name.as_str()).collect();
+        assert_eq!(selectors, vec!["rust.*", "rust.module", "filesystem.map-entry"]);
+        assert_eq!(links[0].range, 0..text.len() - 1);
+        let outer = members(text, &links[0]);
+        let names: Vec<_> = outer.iter().map(|member| member.name.as_str()).collect();
+        assert_eq!(names, vec!["module", "unused"]);
+        assert!(text[outer[0].range.clone()].ends_with("<!-- /nexus -->"));
+        assert_eq!(members(text, &links[2])[0].name, "d");
+    }
+
+    #[test]
+    fn a_body_is_prose_where_code_hides_comments_and_quotes_mean_nothing() {
+        let text = "<!-- nexus rust.* -->\n- module: `<!-- /nexus -->`, a 12\" ruler\n  ```\n  <!-- /nexus -->\n  \
+                    [a](nexus:rust.module)\n  ```\n<!-- /nexus -->\n";
+        let (links, errors) = links_in(text);
+        assert!(errors.is_empty(), "{errors:?}");
+        assert_eq!(links.len(), 1);
+        let members = members(text, &links[0]);
+        assert_eq!(members.len(), 1);
+        assert_eq!(members[0].description.lines().next(), Some("`<!-- /nexus -->`, a 12\" ruler"));
+    }
+
+    #[test]
+    fn a_body_line_neither_a_member_nor_below_one_is_an_error() {
+        let text = "<!-- nexus rust.* -->\n  - module: a\nloose\n<!-- /nexus -->\n";
         let (links, _) = links_in(text);
-        assert_eq!(&text[links[0].range.clone()], "<[markdown.line \"a ]>");
-        assert!(links[0].content(text).arguments(None).is_err());
+        assert!(links[0].read(text, MAP).is_err());
+    }
+
+    #[test]
+    fn a_map_is_never_written_as_a_link_nor_a_link_as_a_map() {
+        let text = "[a](nexus:rust.*)\n\n<!-- nexus filesystem.file a -->\n- b\n<!-- /nexus -->\n";
+        let (links, _) = links_in(text);
+        assert!(links[0].read(text, MAP).is_err());
+        assert!(links[1].read(text, WITHOUT_BODY).is_err());
+    }
+
+    #[test]
+    fn reports_unbalanced_and_malformed_map_comments() {
+        for text in [
+            "<!-- nexus rust.* -->\n- a\n",
+            "- a\n<!-- /nexus -->\n",
+            "<!-- nexus rust.* --> - a\n<!-- /nexus -->\n",
+            "<!-- nexus rust -->\n<!-- /nexus -->\n",
+            "<!-- nexus rust.*\n- a\n",
+        ] {
+            assert_eq!(found_in(text).errors.len(), 1, "{text}");
+        }
+        let examples = "`<!-- nexus rust.* -->`\n\n```\n<!-- /nexus -->\n```\n<!-- other comment -->\n";
+        assert!(found_in(examples).errors.is_empty());
     }
 
     #[test]
     fn reads_links_in_rust_comments_only() {
-        let source = "// <[markdown.section \"A\"]>\nfn main() {\n    let text = \"<[markdown.section \\\"B\\\"]>\";\n}\n";
+        let source = "// [A](nexus:markdown.section)\nfn main() {\n    let text = \"[B](nexus:markdown.section)\";\n}\n";
         let (links, errors) = links_in_rust(source);
         assert!(errors.is_empty());
         assert_eq!(links.len(), 1);
-        assert_eq!(&source[links[0].range.clone()], "<[markdown.section \"A\"]>");
+        assert_eq!(&source[links[0].range.clone()], "[A](nexus:markdown.section)");
     }
 
     #[test]
-    fn parses_a_body_spread_over_rust_comment_lines() {
-        let source = "/// <[rust.map-variant crate::Bar\n///   - Load: LD\n/// ]>\nenum Bar {}\n";
+    fn reads_a_map_spread_over_rust_comment_lines() {
+        let source = "/// <!-- nexus rust.map-variant\n/// crate::Bar -->\n///   - Load: LD\n///     on [a](nexus:a.b)\n/// <!-- /nexus \
+                      -->\nenum Bar {}\n";
         let document = Document::parse(PathBuf::from("test.rs"), Format::Rust, source.to_owned());
-        let (links, errors) = find_links(&document);
-        assert!(errors.is_empty());
-        let names: Vec<_> = members(&document.prose, &links[0], 1)
-            .into_iter()
-            .map(|member| member.name)
-            .collect();
+        let Found { links, errors } = find_links(&document);
+        assert!(errors.is_empty(), "{errors:?}");
+        let selectors: Vec<_> = links.iter().map(|link| link.selector_name.as_str()).collect();
+        assert_eq!(selectors, vec!["rust.map-variant", "a.b"]);
+        let names: Vec<_> = members(&document.prose, &links[0]).into_iter().map(|member| member.name).collect();
         assert_eq!(names, vec!["Load"]);
     }
 
     #[test]
     fn reads_links_in_wit_comments_only() {
-        let source = "package a:b;\n\n/// Runs <[nexus.self]>.\n/* nested /* <[nexus.lint]> */ */\nworld w {\n    export run: func();\n}\n";
+        let source = "package a:b;\n\n/// Runs [nexus](nexus:nexus.self).\n/* nested /* [lint](nexus:nexus.lint) */ */\nworld w {\n    \
+                      export run: func();\n}\n";
         let document = Document::parse(PathBuf::from("test.wit"), Format::Wit, source.to_owned());
-        let (links, errors) = find_links(&document);
+        let Found { links, errors } = find_links(&document);
         assert!(errors.is_empty());
         let texts: Vec<_> = links.iter().map(|link| &source[link.range.clone()]).collect();
-        assert_eq!(texts, vec!["<[nexus.self]>", "<[nexus.lint]>"]);
+        assert_eq!(texts, vec!["[nexus](nexus:nexus.self)", "[lint](nexus:nexus.lint)"]);
         assert_eq!(document.units()[0].title, "world w {");
-    }
-
-    #[test]
-    fn reports_an_unclosed_link() {
-        let (links, errors) = links_in("<[markdown.section \"A\"");
-        assert!(links.is_empty());
-        assert_eq!(errors.len(), 1);
     }
 }

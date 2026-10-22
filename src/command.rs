@@ -44,8 +44,8 @@ pub struct QueryArguments {
 /// This file, relative to the crate.
 pub const SOURCE: &str = file!();
 
-/// The line declaring the subcommand named <[rust.argument name]>, which is
-/// where links to it point.
+/// The line declaring the subcommand named [`name`](nexus:rust.argument), which
+/// is where links to it point.
 pub fn source_line(name: &str) -> usize {
     let variant: String = name
         .split('-')

@@ -2,63 +2,65 @@
 
 ## Decision
 
-Files exercising what <[nexus.self]>'s own source does not live in a
-top-level `resources` directory: languages it reads but is not written in,
-and the ways of writing its own language that it does not use. This ADR
-links to everything in them, so every run of <[nexus.lint]> on this
-repository checks those providers against real files:
+Files exercising what [nexus](nexus:nexus.self)'s own source does not live
+in a top-level `resources` directory: languages it reads but is not
+written in, and the ways of writing its own language that it does not use.
+This ADR links to everything in them, so every run of
+[`nexus lint`](nexus:nexus.lint) on this repository checks those providers
+against real files:
 
-<[filesystem.map-entry resources
-  - nexus.wit: WIT describing nexus as a component
-  - nexus-client: a Rust crate running nexus's command line, with its README
-]>
+<!-- nexus filesystem.map-entry resources -->
+- nexus.wit: WIT describing nexus as a component
+- nexus-client: a Rust crate running nexus's command line, with its README
+<!-- /nexus -->
 
 The WIT file describes nexus itself as a component. Its comments link to
 the parts of nexus they describe, so the lint reads links in WIT comments
 too, and each of its functions is linked here, one link per way WIT
 declares a function:
 
-<[wit.*
+<!-- nexus wit.* -->
 - function:
   - Inside an interface:
-    <[wit.function resources/nexus.wit find]>.
+    [`find`](nexus:wit.function (resources/nexus.wit)).
   - Inside a world:
-    <[wit.function resources/nexus.wit run]>.
+    [`run`](nexus:wit.function (resources/nexus.wit)).
   - A resource's constructor:
-    <[wit.function resources/nexus.wit workspace.constructor]>.
+    [`workspace.constructor`](nexus:wit.function (resources/nexus.wit)).
   - A resource's static function:
-    <[wit.function resources/nexus.wit workspace.find-root]>.
+    [`workspace.find-root`](nexus:wit.function (resources/nexus.wit)).
   - A resource's methods:
-    <[wit.function resources/nexus.wit workspace.lint]>,
-    <[wit.function resources/nexus.wit workspace.locate]> and
-    <[wit.function resources/nexus.wit workspace.references]>.
-]>
+    [`workspace.lint`](nexus:wit.function (resources/nexus.wit)),
+    [`workspace.locate`](nexus:wit.function (resources/nexus.wit)) and
+    [`workspace.references`](nexus:wit.function (resources/nexus.wit)).
+<!-- /nexus -->
 
 The Rust crate is a client of nexus, offering in Rust what the WIT file
 offers as a component. Its comments link to nexus as well, and each of its
 modules is linked here, one link per way Rust declares a module, along
 with arguments of its functions, one link per way of naming the function:
 
-<[rust.*
+<!-- nexus rust.* -->
 - module:
   - In a file of its own, next to its parent:
-    <[rust.module nexus_client::span]>.
+    [`nexus_client::span`](nexus:rust.module).
   - In a file of its own, in its parent's directory:
-    <[rust.module nexus_client::span::position]>.
+    [`nexus_client::span::position`](nexus:rust.module).
   - In a directory, as its `mod.rs`:
-    <[rust.module nexus_client::run]>.
+    [`nexus_client::run`](nexus:rust.module).
   - At a path given by a `#[path]` attribute:
-    <[rust.module nexus_client::problem]>.
+    [`nexus_client::problem`](nexus:rust.module).
   - Inline, in its parent's file:
-    <[rust.module nexus_client::workspace]>.
+    [`nexus_client::workspace`](nexus:rust.module).
 - argument:
   - Of a function in a module:
-    <[rust.argument nexus_client::run::nexus root]>.
+    [`root`](nexus:rust.argument (nexus_client::run::nexus)).
   - Of a method, through its type:
-    <[rust.argument nexus_client::workspace::Workspace::locate selector]>.
+    [`selector`](nexus:rust.argument
+      (nexus_client::workspace::Workspace::locate)).
   - Of the function a link is written on, as the crate's comments link
     to them.
-]>
+<!-- /nexus -->
 
 The crate's README is Markdown written as any repository may write it,
 unlike nexus's own documentation, which writes headings one way only. Its
@@ -66,23 +68,26 @@ links are checked like any other, and each of its sections is linked
 here, one link per way Markdown writes a heading, along with a line of it,
 one outside the file the link is written in:
 
-<[markdown.*
+<!-- nexus markdown.* -->
 - section:
   - Underlined with `=`:
-    <[markdown.section resources/nexus-client/README.md "nexus-client"]>.
+    [nexus-client](nexus:markdown.section (resources/nexus-client/README.md)).
   - Underlined with `-`:
-    <[markdown.section resources/nexus-client/README.md "Usage"]>.
+    [Usage](nexus:markdown.section (resources/nexus-client/README.md)).
   - Closed with `#`:
-    <[markdown.section resources/nexus-client/README.md "Links"]>.
+    [Links](nexus:markdown.section (resources/nexus-client/README.md)).
   - Nested in another section:
-    <[markdown.section resources/nexus-client/README.md "Errors"]>.
+    [Errors](nexus:markdown.section (resources/nexus-client/README.md)).
   - With inline code, linked by its text:
-    <[markdown.section resources/nexus-client/README.md "The PATH it runs nexus from"]>.
+    [The `PATH` it runs nexus from](nexus:markdown.section
+      (resources/nexus-client/README.md)).
   - With emphasis, linked by its text:
-    <[markdown.section resources/nexus-client/README.md "Spans, as nexus counts them"]>.
+    [Spans, *as nexus counts them*](nexus:markdown.section
+      (resources/nexus-client/README.md)).
 - line:
-  <[markdown.line resources/nexus-client/README.md "nothing is an empty list"]>.
-]>
+  [nothing is an empty list](nexus:markdown.line
+    (resources/nexus-client/README.md)).
+<!-- /nexus -->
 
 Each of these lists maps all of its provider's selectors, so a selector
 added to one of them fails the lint until it is exercised here too, or

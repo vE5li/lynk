@@ -2,15 +2,15 @@
 
 ## Decision
 
-<[nexus.self]> reads the links in every comment of a Rust file, plain and
-doc comments alike, and nothing else of it. It finds them with
+[nexus](nexus:nexus.self) reads the links in every comment of a Rust file,
+plain and doc comments alike, and nothing else of it. It finds them with
 `ra-ap-rustc_lexer`, rustc's own lexer as published for rust-analyzer
-(<[rust.module nexus::rust_comment]>). Each run of comment lines on
-consecutive lines is read as Markdown, so inline code and code blocks hold
-examples, as in Markdown files, and is one of the units <[nexus.find]>
-searches, titled by the line of code it is about. WIT files are read the
-same way
-(<[markdown.section adrs/reads-wit-with-wit-parser.md "Decision"]>).
+([`nexus::rust_comment`](nexus:rust.module)). Each run of comment lines on
+consecutive lines is read as Markdown, so links are Markdown links, inline
+code and code blocks hold examples, as in Markdown files, and each run is
+one of the units [`nexus find`](nexus:nexus.find) searches, titled by the
+line of code it is about. WIT files are read the same way (their
+[Decision](nexus:markdown.section (adrs/reads-wit-with-wit-parser.md))).
 
 ## Why
 
@@ -24,7 +24,7 @@ are told apart as the compiler does.
 ## Alternatives
 
 - **syn or proc-macro2**, already used to find modules
-  (<[markdown.section adrs/reads-rust-with-syn.md "Decision"]>): no
+  ([Decision](nexus:markdown.section (adrs/reads-rust-with-syn.md))): no
   new dependency, but both drop plain comments and keep only doc comments,
   as attributes, so links in plain comments would go unchecked.
 - **A lexer of our own**: no dependency, but repeats what rustc's lexer

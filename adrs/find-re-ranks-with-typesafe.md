@@ -2,9 +2,10 @@
 
 ## Decision
 
-<[nexus.find]> picks the best word matches, then asks TypeSafe's model, in
-one request, whether each of them is relevant to the task, and orders them
-by that probability (<[rust.module nexus::relevance]>). It does so only when
+[`nexus find`](nexus:nexus.find) picks the best word matches, then asks
+TypeSafe's model, in one request, whether each of them is relevant to the
+task, and orders them by that probability
+([`nexus::relevance`](nexus:rust.module)). It does so only when
 `TYPESAFE_API_KEY` is set, and keeps the word ranking when it is not or the
 request fails.
 

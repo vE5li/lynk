@@ -1,6 +1,7 @@
 //! The `wit` provider reads WIT files with `wit-parser`, without resolving
-//! dependencies; <[markdown.section adrs/reads-wit-with-wit-parser.md
-//! "Decision"]> says why.
+//! dependencies; its ADR's
+//! [Decision](nexus:markdown.section (adrs/reads-wit-with-wit-parser.md))
+//! says why.
 
 use std::path::{Path, PathBuf};
 
@@ -8,9 +9,9 @@ use wit_parser::{Function, FunctionKind, SourceMap, UnresolvedPackage, WorldItem
 
 use crate::location::{LineIndex, Span};
 
-/// The spans of the names of the functions called <[rust.argument name]> in
-/// the WIT file at <[rust.argument file]>, relative to
-/// <[rust.argument root]>. A resource's functions are named after it,
+/// The spans of the names of the functions called [`name`](nexus:rust.argument)
+/// in the WIT file at [`file`](nexus:rust.argument), relative to
+/// [`root`](nexus:rust.argument). A resource's functions are named after it,
 /// `<resource>.<function>`, its constructor `<resource>.constructor`.
 pub fn find_function(root: &Path, file: &Path, name: &str) -> Vec<Span> {
     let absolute = root.join(file);
@@ -36,9 +37,9 @@ pub fn find_function(root: &Path, file: &Path, name: &str) -> Vec<Span> {
     spans
 }
 
-/// The packages of the file at <[rust.argument path]>, parsed with the other
-/// WIT files of its directory, since a package may span them and a file alone
-/// may not parse; failing that, of the file alone. Also returns the byte
+/// The packages of the file at [`path`](nexus:rust.argument), parsed with the
+/// other WIT files of its directory, since a package may span them and a file
+/// alone may not parse; failing that, of the file alone. Also returns the byte
 /// offsets the file occupies in the parsed sources, which the spans count in.
 fn parse_package(path: &Path) -> Option<(Vec<UnresolvedPackage>, std::ops::Range<usize>)> {
     let mut siblings: Vec<PathBuf> = path

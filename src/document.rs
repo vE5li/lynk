@@ -2,6 +2,7 @@ use std::ops::Range;
 use std::path::{Path, PathBuf};
 
 use crate::location::{LineIndex, Span};
+use crate::markdown::MarkdownLink;
 use crate::{markdown, rust_comment};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -50,6 +51,8 @@ pub struct Document {
     pub prose: String,
     /// Inline code and code blocks: links inside them are examples.
     pub code_ranges: Vec<Range<usize>>,
+    /// Every Markdown link of the prose, whatever its destination.
+    pub markdown_links: Vec<MarkdownLink>,
     pub headings: Vec<Heading>,
     /// The runs of comment lines of source code.
     pub comment_blocks: Vec<Range<usize>>,
@@ -60,14 +63,14 @@ const TITLE_CHARACTERS: usize = 80;
 
 impl Document {
     pub fn parse(path: PathBuf, format: Format, text: String) -> Self {
-        let (prose, code_ranges, headings, comment_blocks) = match format {
+        let (prose, code_ranges, markdown_links, headings, comment_blocks) = match format {
             Format::Markdown => {
-                let (code_ranges, headings) = markdown::parse(&text);
-                (text.clone(), code_ranges, headings, Vec::new())
+                let parsed = markdown::parse(&text);
+                (text.clone(), parsed.code_ranges, parsed.links, parsed.headings, Vec::new())
             }
             Format::Rust | Format::Wit => {
                 let comments = rust_comment::comment_text(&text);
-                (comments.text, comments.code_ranges, Vec::new(), comments.blocks)
+                (comments.text, comments.code_ranges, comments.links, Vec::new(), comments.blocks)
             }
         };
         Self {
@@ -76,6 +79,7 @@ impl Document {
             text,
             prose,
             code_ranges,
+            markdown_links,
             headings,
             comment_blocks,
         }

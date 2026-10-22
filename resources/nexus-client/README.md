@@ -1,9 +1,9 @@
 nexus-client
 ============
 
-A Rust client of <[nexus.self]>: it runs the command line and reads what
-it prints, offering in Rust what <[filesystem.file resources/nexus.wit]>
-offers as a component.
+A Rust client of [nexus](nexus:nexus.self): it runs the command line and
+reads what it prints, offering in Rust what
+[`resources/nexus.wit`](nexus:filesystem.file) offers as a component.
 
 Usage
 -----
@@ -21,8 +21,9 @@ problems.
 
 ## Links ##
 
-A link is passed as its `<provider.selector>` and its arguments, unquoted, as
-on the command line <[markdown.section README.md "Commands"]> describes.
+A link is passed as its `<provider.selector>` and its arguments, unquoted,
+as on the command line nexus's README describes under
+[Commands](nexus:markdown.section (README.md)).
 
 ### Errors
 
@@ -38,5 +39,5 @@ take a root directory.
 ## Spans, *as nexus counts them*
 
 Spans are read as nexus prints them, with lines and columns counted as
-<[rust.module nexus::location]> counts them. A problem's message is the
+[`nexus::location`](nexus:rust.module) counts them. A problem's message is the
 lint's own, unchanged.

@@ -1,4 +1,4 @@
-//! A place in a file, counted as <[rust.module nexus::location]> counts it.
+//! A place in a file, counted as [`nexus::location`](nexus:rust.module) counts it.
 
 /// Line and column, both from 1; columns count characters, not bytes.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]

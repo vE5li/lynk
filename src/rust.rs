@@ -1,5 +1,5 @@
 //! The `rust` provider reads source files with `syn`, without building
-//! anything; <[markdown.section adrs/reads-rust-with-syn.md "Decision"]>
+//! anything; [Decision](nexus:markdown.section (adrs/reads-rust-with-syn.md))
 //! says why and what that leaves out.
 
 use std::path::{Path, PathBuf};
@@ -11,7 +11,7 @@ use syn::{FnArg, ImplItem, Item, ItemMod, Pat, Signature, TraitItem, Type};
 use crate::location::{Position, Span};
 
 /// The directory of the package whose crate is named
-/// <[rust.argument name]>, relative to <[rust.argument root]>.
+/// [`name`](nexus:rust.argument), relative to [`root`](nexus:rust.argument).
 fn find_crate(root: &Path, name: &str) -> Option<PathBuf> {
     ignore::WalkBuilder::new(root)
         .build()
@@ -46,7 +46,7 @@ struct ModuleContext {
 
 /// The module at a path written as in Rust, `<crate>::<module>::…`, the
 /// crate alone being its root; paths are relative to
-/// <[rust.argument root]>.
+/// [`root`](nexus:rust.argument).
 pub fn find_module(root: &Path, path: &str) -> Option<Span> {
     let segments: Vec<&str> = path.split("::").collect();
     Some(module_at(root, &segments)?.span)
@@ -116,8 +116,8 @@ pub fn find_argument(root: &Path, function_path: &str, argument: &str) -> Vec<Sp
 }
 
 /// The spans of an argument of the innermost function whose definition,
-/// its doc comment and body included, holds <[rust.argument line]> of
-/// <[rust.argument file]>, relative to <[rust.argument root]>.
+/// its doc comment and body included, holds [`line`](nexus:rust.argument) of
+/// [`file`](nexus:rust.argument), relative to [`root`](nexus:rust.argument).
 pub fn find_enclosing_argument(root: &Path, file: &Path, line: usize, argument: &str) -> Vec<Span> {
     let Some(parsed) = std::fs::read_to_string(root.join(file))
         .ok()
@@ -172,8 +172,8 @@ impl<'ast> Visit<'ast> for EnclosingFunctions {
     }
 }
 
-/// The argument named <[rust.argument name]> in a signature, `self` for the
-/// receiver; arguments destructured by a pattern have no name.
+/// The argument named [`name`](nexus:rust.argument) in a signature, `self` for
+/// the receiver; arguments destructured by a pattern have no name.
 fn argument_span(file: &Path, signature: &Signature, name: &str) -> Option<Span> {
     signature
         .inputs

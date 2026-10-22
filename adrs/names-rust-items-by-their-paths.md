@@ -2,9 +2,10 @@
 
 ## Decision
 
-The `rust` selectors of <[nexus.self]> name modules and functions by their
-paths as Rust writes them, starting with the crate's name as code using it
-writes it (<[rust.module nexus::rust]>): its library's name when the
+The `rust` selectors of [nexus](nexus:nexus.self) name modules and
+functions by their paths as Rust writes them, starting with the crate's
+name as code using it writes it ([`nexus::rust`](nexus:rust.module)): its
+library's name when the
 manifest gives one, otherwise its package's with dashes turned into
 underscores. A method's path goes through its type or trait, as calling
 it by its full path does.

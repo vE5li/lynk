@@ -34,7 +34,7 @@ impl<'text> LineIndex<'text> {
     }
 
     /// The span of a byte range of the text, which is the file at
-    /// <[rust.argument path]>.
+    /// [`path`](nexus:rust.argument).
     pub fn span(&self, path: &Path, range: Range<usize>) -> Span {
         // The end position names the last character, not the one after it.
         let last = self.text[range.clone()]

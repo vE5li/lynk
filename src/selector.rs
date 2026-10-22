@@ -2,7 +2,7 @@ use std::ops::Range;
 use std::path::{Component, Path, PathBuf};
 
 use crate::document::{Document, Format};
-use crate::link::{Argument, Link, Member, SyntaxError};
+use crate::link::{Argument, Link, Member, Shape, SyntaxError};
 use crate::location::{LineIndex, Position, Span};
 use crate::workspace::Workspace;
 use crate::{command, rust, wit};
@@ -73,13 +73,31 @@ impl Selector {
         }
     }
 
-    /// For a map selector, how many arguments come before its body; `None`
-    /// for a selector without a body, whose whole content is arguments.
-    fn arguments_before_body(self) -> Option<usize> {
-        match self {
-            Self::FilesystemMapEntry => Some(1),
-            Self::NexusSelectors => Some(0),
-            _ => None,
+    /// Whether it is a map selector, taking a body.
+    fn is_map(self) -> bool {
+        matches!(self, Self::FilesystemMapEntry | Self::NexusSelectors)
+    }
+
+    fn takes_arguments(self) -> bool {
+        !matches!(
+            self,
+            Self::NexusSelectors | Self::NexusSelf | Self::NexusLint | Self::NexusWhere | Self::NexusRef | Self::NexusFind
+        )
+    }
+
+    /// How a selector named [`name`](nexus:rust.argument) reads a link, a
+    /// provider's `*` included; an unknown one is read as taking arguments
+    /// and no body, to be reported once read.
+    fn shape(name: &str) -> Shape {
+        match name.split_once('.') {
+            Some((_, EVERY_SELECTOR)) => Shape {
+                map: true,
+                takes_arguments: false,
+            },
+            _ => Shape {
+                map: Self::from_name(name).is_some_and(Self::is_map),
+                takes_arguments: Self::from_name(name).is_none_or(Self::takes_arguments),
+            },
         }
     }
 
@@ -181,19 +199,10 @@ pub enum Query {
 impl Query {
     /// Reads a link's content as its selector defines it: its arguments,
     /// then the members of its body for a map selector.
-    /// <[rust.argument document]> is the one the link is written in.
+    /// [`document`](nexus:rust.argument) is the one the link is written in.
     pub fn of_link(link: &Link, document: &Document) -> Result<(Self, Vec<Member>), SyntaxError> {
         let selector_name = link.selector_name.as_str();
-        let content = link.content(&document.prose);
-        let arguments_before_body = match selector_name.split_once('.') {
-            Some((_, EVERY_SELECTOR)) => Some(0),
-            _ => Selector::from_name(selector_name).and_then(Selector::arguments_before_body),
-        };
-        let (arguments, body) = content.arguments(arguments_before_body)?;
-        let members = match arguments_before_body {
-            Some(_) => body.members()?,
-            None => Vec::new(),
-        };
+        let (arguments, members) = link.read(&document.prose, Selector::shape(selector_name))?;
         let place = Place {
             file: &document.path,
             line: document.span(link.range.clone()).start.line,
@@ -205,8 +214,8 @@ impl Query {
         Ok((query, members))
     }
 
-    /// <[rust.argument place]> is where a link is written, `None` on the
-    /// command line.
+    /// [`place`](nexus:rust.argument) is where a link is written, `None` on
+    /// the command line.
     pub fn new(selector_name: &str, arguments: &[Argument], place: Option<&Place>) -> Result<Self, String> {
         let context_file = place.map(|place| place.file);
         let texts: Vec<&str> = arguments.iter().map(|argument| argument.text.as_str()).collect();
@@ -512,25 +521,24 @@ mod tests {
     /// The query and members of the first link in a Markdown text.
     fn read_first_link(text: &str) -> Result<(Query, Vec<Member>), SyntaxError> {
         let document = Document::parse(PathBuf::from("test.md"), Format::Markdown, text.to_owned());
-        let (links, errors) = find_links(&document);
-        assert!(errors.is_empty(), "{:?}", errors);
-        Query::of_link(&links[0], &document)
+        let found = find_links(&document);
+        assert!(found.errors.is_empty(), "{:?}", found.errors);
+        Query::of_link(&found.links[0], &document)
     }
 
     #[test]
     fn an_argument_without_a_function_is_one_of_the_function_the_link_is_on() {
-        let source = "fn main() {}\n\n/// With <[rust.argument\n/// root]>.\nfn run(root: &str) {}\n";
+        let source = "fn main() {}\n\n/// With\n/// [`root`](nexus:rust.argument).\nfn run(root: &str) {}\n";
         let document = Document::parse(PathBuf::from("src/main.rs"), Format::Rust, source.to_owned());
-        let (links, _) = find_links(&document);
-        let (query, _) = Query::of_link(&links[0], &document).unwrap();
+        let (query, _) = Query::of_link(&find_links(&document).links[0], &document).unwrap();
         assert_eq!(query, Query::RustArgument {
             function: RustFunction::Enclosing {
                 file: PathBuf::from("src/main.rs"),
-                line: 3
+                line: 4
             },
             argument: "root".to_owned()
         });
-        assert!(read_first_link("<[rust.argument root]>").is_err());
+        assert!(read_first_link("[`root`](nexus:rust.argument)").is_err());
         assert!(
             Query::new(
                 "rust.argument",
@@ -545,8 +553,8 @@ mod tests {
     }
 
     #[test]
-    fn arguments_may_go_on_over_several_lines() {
-        let (query, members) = read_first_link("<[markdown.section docs/a.md\n  \"Two words\"]>").unwrap();
+    fn the_text_of_a_link_is_its_last_argument() {
+        let (query, members) = read_first_link("[Two\nwords](nexus:markdown.section\n  (docs/a.md))").unwrap();
         assert_eq!(query, Query::MarkdownSection {
             file: Some(PathBuf::from("docs/a.md")),
             heading: "Two words".to_owned()
@@ -556,11 +564,11 @@ mod tests {
 
     #[test]
     fn arguments_spread_over_rust_comment_lines() {
-        let source = "//! <[markdown.section docs/a.md\n//! \"Decision\"]>\nfn main() {}\n";
+        let source = "//! [Decision](nexus:markdown.section\n//! (docs/a.md))\nfn main() {}\n";
         let document = Document::parse(PathBuf::from("test.rs"), Format::Rust, source.to_owned());
-        let (links, errors) = find_links(&document);
-        assert!(errors.is_empty());
-        let (query, _) = Query::of_link(&links[0], &document).unwrap();
+        let found = find_links(&document);
+        assert!(found.errors.is_empty());
+        let (query, _) = Query::of_link(&found.links[0], &document).unwrap();
         assert_eq!(query, Query::MarkdownSection {
             file: Some(PathBuf::from("docs/a.md")),
             heading: "Decision".to_owned()
@@ -569,7 +577,8 @@ mod tests {
 
     #[test]
     fn a_map_selector_reads_its_body_after_its_arguments() {
-        let (query, members) = read_first_link("<[filesystem.map-entry\n  src\n  - a: b\n  - c: d \"quoted\"\n]>").unwrap();
+        let (query, members) =
+            read_first_link("<!-- nexus filesystem.map-entry\n  src -->\n- a: b\n- c: d \"quoted\"\n<!-- /nexus -->\n").unwrap();
         assert_eq!(query, Query::FilesystemMapEntry {
             path: PathBuf::from("src")
         });
@@ -581,14 +590,23 @@ mod tests {
     }
 
     #[test]
-    fn a_star_reads_everything_as_its_body() {
-        let (_, members) = read_first_link("<[rust.* - module: a]>").unwrap();
+    fn a_star_takes_a_body_and_no_arguments() {
+        let (_, members) = read_first_link("<!-- nexus rust.* -->\n- module: a\n<!-- /nexus -->\n").unwrap();
         assert_eq!(members[0].name, "module");
+        assert!(read_first_link("<!-- nexus rust.* a -->\n- module: a\n<!-- /nexus -->\n").is_err());
     }
 
     #[test]
-    fn a_selector_without_a_body_reads_a_list_as_arguments() {
-        assert!(read_first_link("<[filesystem.file a\n- b: c\n]>").is_err());
+    fn a_selector_without_a_body_is_not_a_map() {
+        assert!(read_first_link("<!-- nexus filesystem.file a -->\n- b: c\n<!-- /nexus -->\n").is_err());
+    }
+
+    #[test]
+    fn a_selector_without_arguments_ignores_the_text_of_its_link() {
+        assert_eq!(
+            read_first_link("[the lint](nexus:nexus.lint)").unwrap().0,
+            Query::NexusCommand("lint")
+        );
     }
 
     #[test]

@@ -1,4 +1,4 @@
-//! Runs the command line <[markdown.section README.md "Commands"]>
+//! Runs the command line [Commands](nexus:markdown.section (README.md))
 //! describes, finding `nexus` on the `PATH`.
 
 use std::path::Path;
@@ -22,8 +22,8 @@ impl Output {
     }
 }
 
-/// Runs `nexus` with <[rust.argument arguments]> on the repository at
-/// <[rust.argument root]>.
+/// Runs `nexus` with [`arguments`](nexus:rust.argument) on the repository at
+/// [`root`](nexus:rust.argument).
 pub fn nexus(root: &Path, arguments: &[&str]) -> Result<Output, String> {
     let output = Command::new("nexus")
         .arg("--root")

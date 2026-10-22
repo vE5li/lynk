@@ -1,13 +1,13 @@
 //! Reads the comments of Rust source, the only part of it that holds
-//! links, and of the languages writing comments the same way;
-//! <[markdown.section adrs/reads-rust-comments-with-rustc-lexer.md "Decision"]>
-//! says how and why.
+//! links, and of the languages writing comments the same way; its ADR's
+//! [Decision](nexus:markdown.section
+//! (adrs/reads-rust-comments-with-rustc-lexer.md)) says how and why.
 
 use std::ops::Range;
 
 use ra_ap_rustc_lexer::{FrontmatterAllowed, TokenKind, tokenize};
 
-use crate::markdown;
+use crate::markdown::{self, MarkdownLink};
 
 pub struct CommentText {
     /// The source with everything but the comments' text blanked out, byte
@@ -15,6 +15,8 @@ pub struct CommentText {
     pub text: String,
     /// Inline code and code blocks inside the comments.
     pub code_ranges: Vec<Range<usize>>,
+    /// The Markdown links inside the comments.
+    pub links: Vec<MarkdownLink>,
     /// Each run of comment lines on consecutive lines, from the start of
     /// its first line's text to the end of its last.
     pub blocks: Vec<Range<usize>>,
@@ -27,11 +29,18 @@ pub fn comment_text(source: &str) -> CommentText {
         text[line.range.clone()].copy_from_slice(&source.as_bytes()[line.range.clone()]);
     }
     let blocks = blocks(&lines);
-    let code_ranges = blocks.iter().flat_map(|block| code_ranges(source, block)).collect();
+    let mut code_ranges = Vec::new();
+    let mut links = Vec::new();
+    for block in &blocks {
+        let (block_code_ranges, block_links) = parse_block(source, block);
+        code_ranges.extend(block_code_ranges);
+        links.extend(block_links);
+    }
     CommentText {
         // Only whole characters were copied and only ASCII blanked out.
         text: String::from_utf8(text).expect("blanking keeps the text valid UTF-8"),
         code_ranges,
+        links,
         blocks: blocks
             .iter()
             .map(|block| block[0].range.start..block[block.len() - 1].range.end)
@@ -117,10 +126,10 @@ fn blocks(lines: &[CommentLine]) -> Vec<&[CommentLine]> {
     blocks
 }
 
-/// The block's code ranges in the source: its lines, stripped of the
-/// indentation they share, are parsed as Markdown, and the ranges found
+/// The block's code ranges and links in the source: its lines, stripped of
+/// the indentation they share, are parsed as Markdown, and the ranges found
 /// are mapped back line by line.
-fn code_ranges(source: &str, block: &[CommentLine]) -> Vec<Range<usize>> {
+fn parse_block(source: &str, block: &[CommentLine]) -> (Vec<Range<usize>>, Vec<MarkdownLink>) {
     let indentation = block
         .iter()
         .map(|line| &source[line.range.clone()])
@@ -143,11 +152,18 @@ fn code_ranges(source: &str, block: &[CommentLine]) -> Vec<Range<usize>> {
         let (markdown_start, source_start) = line_starts[line_index];
         source_start + markdown_offset - markdown_start
     };
-    let (ranges, _) = markdown::parse(&markdown_text);
-    ranges
+    let to_source_range = |range: Range<usize>| to_source(range.start)..to_source(range.end.saturating_sub(1)) + 1;
+    let parsed = markdown::parse(&markdown_text);
+    let code_ranges = parsed.code_ranges.into_iter().map(to_source_range).collect();
+    let links = parsed
+        .links
         .into_iter()
-        .map(|range| to_source(range.start)..to_source(range.end.saturating_sub(1)) + 1)
-        .collect()
+        .map(|link| MarkdownLink {
+            range: to_source_range(link.range),
+            ..link
+        })
+        .collect();
+    (code_ranges, links)
 }
 
 #[cfg(test)]
@@ -181,8 +197,17 @@ mod tests {
 
     #[test]
     fn finds_inline_code_and_code_blocks() {
-        let source = "/// See `<[a.b]>`.\n///\n/// ```\n/// <[c.d]>\n/// ```\nfn main() {}\n";
-        assert_eq!(code(source), vec!["`<[a.b]>`", "```\n/// <[c.d]>\n/// ```"]);
+        let source = "/// See `[a](nexus:a.b)`.\n///\n/// ```\n/// [c](nexus:c.d)\n/// ```\nfn main() {}\n";
+        assert_eq!(code(source), vec!["`[a](nexus:a.b)`", "```\n/// [c](nexus:c.d)\n/// ```"]);
+        assert!(comment_text(source).links.is_empty());
+    }
+
+    #[test]
+    fn finds_links_spread_over_comment_lines() {
+        let source = "/// See [it](nexus:a.b\n///   (c d)).\nfn main() {}\n";
+        let links = comment_text(source).links;
+        assert_eq!(&source[links[0].range.clone()], "[it](nexus:a.b\n///   (c d))");
+        assert_eq!(links[0].title.as_deref(), Some("c d"));
     }
 
     #[test]
@@ -194,7 +219,7 @@ mod tests {
 
     #[test]
     fn does_not_mistake_indentation_for_a_code_block() {
-        let source = "fn main() {\n        // <[a.b]>\n}\n";
+        let source = "fn main() {\n        // [a](nexus:a.b)\n}\n";
         assert!(code(source).is_empty());
     }
 }
