@@ -5,7 +5,7 @@
 Each format decides how links are written in its files, since it is the
 format that finds them
 ([Decision](nexus:markdown.section
-  (adrs/splits-languages-into-formats-and-providers.md))). A format writes
+  (design/splits-languages-into-formats-and-providers.md))). A format writes
 them as Markdown links and maps, as
 [Link syntax](nexus:markdown.section (README.md)) describes, whenever its
 prose can be read as Markdown: Markdown files, and comments and other

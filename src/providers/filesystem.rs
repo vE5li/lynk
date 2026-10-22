@@ -5,7 +5,7 @@ use std::path::{Path, PathBuf};
 
 use crate::link::{Member, Shape};
 use crate::location::Span;
-use crate::provider::{MemberError, Place, Provider, Query, check_complete_map, single_path};
+use crate::providers::{MemberError, Place, Provider, Query, check_complete_map, single_path};
 use crate::workspace::Workspace;
 
 pub const NAME: &str = "filesystem";
@@ -40,10 +40,16 @@ impl Provider for Filesystem {
 
 #[derive(Debug)]
 enum FilesystemQuery {
-    File { path: PathBuf },
-    Directory { path: PathBuf },
+    File {
+        path: PathBuf,
+    },
+    Directory {
+        path: PathBuf,
+    },
     /// The entries of a directory, as complete map.
-    MapEntry { path: PathBuf },
+    MapEntry {
+        path: PathBuf,
+    },
 }
 
 impl Query for FilesystemQuery {
@@ -80,12 +86,15 @@ fn directory_entries(directory: &Path) -> Vec<String> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::provider::tests::{assert_query, read_first_link};
+    use crate::providers::tests::{assert_query, read_first_link};
 
     #[test]
     fn a_map_selector_reads_its_body_after_its_arguments() {
-        let (query, members) =
-            read_first_link("test.md", "<!-- nexus filesystem.map-entry\n  src -->\n- a: b\n- c: d \"quoted\"\n<!-- /nexus -->\n").unwrap();
+        let (query, members) = read_first_link(
+            "test.md",
+            "<!-- nexus filesystem.map-entry\n  src -->\n- a: b\n- c: d \"quoted\"\n<!-- /nexus -->\n",
+        )
+        .unwrap();
         assert_query(query.as_ref(), &FilesystemQuery::MapEntry {
             path: PathBuf::from("src"),
         });

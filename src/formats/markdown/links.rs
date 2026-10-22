@@ -151,7 +151,7 @@ fn find_maps(document: &Document, found: &mut Found) {
 mod tests {
     use std::path::{Path, PathBuf};
 
-    use crate::format;
+    use crate::formats;
     use crate::link::{Argument, Link, Member, Shape, SyntaxError};
     use crate::workspace::LinkedDocument;
 
@@ -163,7 +163,7 @@ mod tests {
     /// [`text`](nexus:rust.argument) read as a file at
     /// [`path`](nexus:rust.argument).
     fn read(path: &str, text: &str) -> LinkedDocument {
-        format::of(Path::new(path)).unwrap().read(PathBuf::from(path), text.to_owned())
+        formats::of(Path::new(path)).unwrap().read(PathBuf::from(path), text.to_owned())
     }
 
     fn links_in(text: &str) -> (Vec<Link>, Vec<SyntaxError>) {
@@ -186,7 +186,10 @@ mod tests {
         let (links, errors) = links_in(text);
         assert!(errors.is_empty());
         assert_eq!(links[0].selector_name, "markdown.section");
-        assert_eq!(&text[links[0].range.clone()], "[Phase 2](nexus:markdown.section\n  (\"plans/a b.md\"))");
+        assert_eq!(
+            &text[links[0].range.clone()],
+            "[Phase 2](nexus:markdown.section\n  (\"plans/a b.md\"))"
+        );
         let (arguments, _) = links[0].read(text, Shape::LINK).unwrap();
         assert_eq!(arguments, vec![
             Argument {
@@ -237,7 +240,8 @@ mod tests {
 
     #[test]
     fn reads_a_map_between_comments() {
-        let text = "Opcodes:\n<!-- nexus rust.map-variant\n  crate::Bar -->\n- Load: LD\n- Read: [RD](nexus:a.b)\n<!-- /nexus -->\nAfter.\n";
+        let text =
+            "Opcodes:\n<!-- nexus rust.map-variant\n  crate::Bar -->\n- Load: LD\n- Read: [RD](nexus:a.b)\n<!-- /nexus -->\nAfter.\n";
         let (links, errors) = links_in(text);
         assert!(errors.is_empty(), "{errors:?}");
         assert_eq!(links[0].selector_name, "rust.map-variant");
@@ -245,7 +249,10 @@ mod tests {
         assert_eq!(links[0].nested, vec![links[1].range.clone()]);
         let (arguments, members) = links[0].read(text, MAP).unwrap();
         assert_eq!(arguments[0].text, "crate::Bar");
-        let members: Vec<_> = members.iter().map(|member| (member.name.as_str(), member.description.as_str())).collect();
+        let members: Vec<_> = members
+            .iter()
+            .map(|member| (member.name.as_str(), member.description.as_str()))
+            .collect();
         assert_eq!(members, vec![("Load", "LD"), ("Read", "[RD](nexus:a.b)")]);
     }
 
@@ -267,8 +274,8 @@ mod tests {
 
     #[test]
     fn a_body_is_prose_where_code_hides_comments_and_quotes_mean_nothing() {
-        let text = "<!-- nexus rust.* -->\n- module: `<!-- /nexus -->`, a 12\" ruler\n  ```\n  <!-- /nexus -->\n  [a](nexus:rust.module)\n  \
-                    ```\n<!-- /nexus -->\n";
+        let text = "<!-- nexus rust.* -->\n- module: `<!-- /nexus -->`, a 12\" ruler\n  ```\n  <!-- /nexus -->\n  \
+                    [a](nexus:rust.module)\n  ```\n<!-- /nexus -->\n";
         let (links, errors) = links_in(text);
         assert!(errors.is_empty(), "{errors:?}");
         assert_eq!(links.len(), 1);

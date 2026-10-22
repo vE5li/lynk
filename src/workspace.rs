@@ -1,7 +1,7 @@
 use std::path::{Path, PathBuf};
 
 use crate::document::Document;
-use crate::format;
+use crate::formats;
 use crate::link::{Found, Link, SyntaxError};
 
 pub struct LinkedDocument {
@@ -36,7 +36,7 @@ impl Workspace {
         // so a file reachable under two names is read once.
         for entry in ignore::WalkBuilder::new(&root).build() {
             let entry = entry.map_err(std::io::Error::other)?;
-            let Some(format) = format::of(entry.path()) else {
+            let Some(format) = formats::of(entry.path()) else {
                 continue;
             };
             if !entry.file_type().is_some_and(|file_type| file_type.is_file()) {

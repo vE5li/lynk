@@ -9,7 +9,11 @@ use crate::document::Document;
 use crate::link::{Argument, Link, Member, Shape, SyntaxError};
 use crate::location::Span;
 use crate::workspace::Workspace;
-use crate::{filesystem, markdown, nexus, rust, wit};
+mod filesystem;
+mod markdown;
+pub mod nexus;
+mod rust;
+mod wit;
 
 /// A kind of target, named by the first part of its selectors' names.
 pub trait Provider {
@@ -33,13 +37,7 @@ pub trait Query: Debug {
     }
 }
 
-pub const PROVIDERS: [&dyn Provider; 5] = [
-    &markdown::Markdown,
-    &filesystem::Filesystem,
-    &rust::Rust,
-    &wit::Wit,
-    &nexus::Nexus,
-];
+pub const PROVIDERS: &[&dyn Provider] = &[&markdown::Markdown, &filesystem::Filesystem, &rust::Rust, &wit::Wit, &nexus::Nexus];
 
 /// This file, relative to the crate: where the providers are listed.
 pub const SOURCE: &str = file!();
@@ -63,8 +61,13 @@ pub struct MemberError {
 /// Every selector's full name, `<provider>.<selector>`.
 pub fn selector_names() -> Vec<String> {
     PROVIDERS
-        .into_iter()
-        .flat_map(|provider| provider.selectors().iter().map(move |selector| format!("{}.{selector}", provider.name())))
+        .iter()
+        .flat_map(|provider| {
+            provider
+                .selectors()
+                .iter()
+                .map(move |selector| format!("{}.{selector}", provider.name()))
+        })
         .collect()
 }
 
@@ -75,13 +78,15 @@ fn find(selector_name: &str) -> Result<(&'static dyn Provider, &str), String> {
         .split_once('.')
         .ok_or_else(|| format!("a selector is named `<provider>.<selector>`, not `{selector_name}`"))?;
     let provider = PROVIDERS
-        .into_iter()
+        .iter()
         .find(|provider| provider.name() == provider_name)
         .ok_or_else(|| format!("unknown provider `{provider_name}`"))?;
+
     if selector != EVERY_SELECTOR && !provider.selectors().contains(&selector) {
         return Err(format!("unknown selector `{selector_name}`"));
     }
-    Ok((provider, selector))
+
+    Ok((*provider, selector))
 }
 
 fn shape(provider: &dyn Provider, selector: &str) -> Shape {
@@ -199,13 +204,13 @@ pub fn normalize(path: &str) -> PathBuf {
 #[cfg(test)]
 pub mod tests {
     use super::*;
-    use crate::format;
+    use crate::formats;
 
     /// The query and members of the first link in
     /// [`text`](nexus:rust.argument), read as a file at
     /// [`path`](nexus:rust.argument).
     pub fn read_first_link(path: &str, text: &str) -> Result<(Box<dyn Query>, Vec<Member>), SyntaxError> {
-        let format = format::of(Path::new(path)).unwrap();
+        let format = formats::of(Path::new(path)).unwrap();
         let linked = format.read(PathBuf::from(path), text.to_owned());
         assert!(linked.syntax_errors.is_empty(), "{:?}", linked.syntax_errors);
         of_link(&linked.links[0], &linked.document)

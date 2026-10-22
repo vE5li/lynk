@@ -1,34 +1,17 @@
-//! Rust: a format whose comments are its prose, and a provider of its
-//! modules and its functions' arguments, which it names by their paths.
+//! Rust modules and the arguments of Rust functions, named by their paths.
 
-pub mod comments;
 mod items;
 
 use std::path::PathBuf;
 
-use crate::format::{self, Format};
+use crate::formats::rust::NAME;
+use crate::formats::{self};
 use crate::link::Shape;
 use crate::location::Span;
-use crate::provider::{Place, Provider, Query};
-use crate::workspace::{LinkedDocument, Workspace};
-
-pub const NAME: &str = "rust";
+use crate::providers::{Place, Provider, Query};
+use crate::workspace::Workspace;
 
 pub struct Rust;
-
-impl Format for Rust {
-    fn name(&self) -> &'static str {
-        NAME
-    }
-
-    fn extensions(&self) -> &'static [&'static str] {
-        &["rs"]
-    }
-
-    fn read(&self, path: PathBuf, text: String) -> LinkedDocument {
-        comments::read(NAME, path, text)
-    }
-}
 
 impl Provider for Rust {
     fn name(&self) -> &'static str {
@@ -53,7 +36,7 @@ impl Provider for Rust {
             _ => {
                 let (function, argument) = match (arguments, place) {
                     ([function, argument], _) => (RustFunction::Path((*function).to_owned()), argument),
-                    ([argument], Some(place)) if format::of(place.file).is_some_and(|format| format.name() == NAME) => (
+                    ([argument], Some(place)) if formats::of(place.file).is_some_and(|format| format.name() == NAME) => (
                         RustFunction::Enclosing {
                             file: place.file.to_owned(),
                             line: place.line,
@@ -110,7 +93,7 @@ impl Query for RustQuery {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::provider::tests::{assert_query, read_first_link};
+    use crate::providers::tests::{assert_query, read_first_link};
 
     #[test]
     fn an_argument_without_a_function_is_one_of_the_function_the_link_is_on() {

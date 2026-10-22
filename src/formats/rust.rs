@@ -1,17 +1,36 @@
-//! Reads the comments of Rust source, the only part of it that holds
-//! links, and of the languages writing comments the same way; its ADR's
-//! [Decision](nexus:markdown.section
-//! (adrs/reads-rust-comments-with-rustc-lexer.md)) says how and why.
+//! Rust source, read through its comments, the only part of it that holds
+//! links, as are the languages writing comments the same way; its design
+//! record's [Decision](nexus:markdown.section
+//! (design/reads-rust-comments-with-rustc-lexer.md)) says how and why.
 
 use std::ops::Range;
 use std::path::PathBuf;
 
 use ra_ap_rustc_lexer::{FrontmatterAllowed, TokenKind, tokenize};
 
+use super::Format;
+use super::markdown::find_links;
+use super::markdown::parse::{self, MarkdownLink};
 use crate::document::{Document, Unit};
-use crate::markdown::parse::{self, MarkdownLink};
-use crate::markdown::find_links;
 use crate::workspace::LinkedDocument;
+
+pub const NAME: &str = "rust";
+
+pub struct Rust;
+
+impl Format for Rust {
+    fn name(&self) -> &'static str {
+        NAME
+    }
+
+    fn extensions(&self) -> &'static [&'static str] {
+        &["rs"]
+    }
+
+    fn read(&self, path: PathBuf, text: String) -> LinkedDocument {
+        read(NAME, path, text)
+    }
+}
 
 /// Titles taken from source code are cut, since a line of code may be long.
 const TITLE_CHARACTERS: usize = 80;
@@ -21,7 +40,11 @@ const TITLE_CHARACTERS: usize = 80;
 /// and each run of comment lines is a unit.
 pub fn read(format: &'static str, path: PathBuf, text: String) -> LinkedDocument {
     let comments = comment_text(&text);
-    let units = comments.blocks.iter().map(|block| unit(&text, &comments.text, block.clone())).collect();
+    let units = comments
+        .blocks
+        .iter()
+        .map(|block| unit(&text, &comments.text, block.clone()))
+        .collect();
     let document = Document {
         path,
         format,

@@ -1,16 +1,11 @@
 mod command;
 mod document;
-mod filesystem;
 mod find;
-mod format;
+mod formats;
 mod link;
 mod location;
-mod markdown;
-mod nexus;
-mod provider;
+mod providers;
 mod relevance;
-mod rust;
-mod wit;
 mod workspace;
 
 use std::collections::HashSet;
@@ -20,7 +15,7 @@ use clap::Parser;
 use command::{Cli, Command, QueryArguments};
 use link::{Argument, Link, Member, SyntaxError};
 use location::Span;
-use provider::Query;
+use providers::Query;
 use workspace::{LinkedDocument, Workspace, find_root};
 
 fn main() -> ExitCode {
@@ -53,11 +48,11 @@ fn run(cli: Cli) -> Result<ExitCode, String> {
 
 fn query_from_command_line(query: QueryArguments) -> Result<Box<dyn Query>, String> {
     let arguments: Vec<Argument> = query.arguments.into_iter().map(|text| Argument { text, quoted: false }).collect();
-    provider::query(&query.selector, &arguments, None)
+    providers::query(&query.selector, &arguments, None)
 }
 
 fn query_of_link(linked: &LinkedDocument, link: &Link) -> Result<(Box<dyn Query>, Vec<Member>), SyntaxError> {
-    provider::of_link(link, &linked.document)
+    providers::of_link(link, &linked.document)
 }
 
 fn lint(workspace: &Workspace) -> ExitCode {

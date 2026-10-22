@@ -52,12 +52,12 @@ mod tests {
         assert_eq!(single.path, PathBuf::from("src/location.rs"));
         assert_eq!((single.start, single.end), (position(1, 1), position(1, 1)));
 
-        let range = Span::parse("adrs/reads-rust-with-syn.md:3:1-31:2").unwrap();
-        assert_eq!(range.path, PathBuf::from("adrs/reads-rust-with-syn.md"));
+        let range = Span::parse("design/reads-rust-with-syn.md:3:1-31:2").unwrap();
+        assert_eq!(range.path, PathBuf::from("design/reads-rust-with-syn.md"));
         assert_eq!((range.start, range.end), (position(3, 1), position(31, 2)));
 
-        let dashed = Span::parse("adrs/reads-rust-with-syn.md:3:1").unwrap();
-        assert_eq!(dashed.path, PathBuf::from("adrs/reads-rust-with-syn.md"));
+        let dashed = Span::parse("design/reads-rust-with-syn.md:3:1").unwrap();
+        assert_eq!(dashed.path, PathBuf::from("design/reads-rust-with-syn.md"));
 
         assert_eq!(Span::parse("3 error(s)"), None);
     }

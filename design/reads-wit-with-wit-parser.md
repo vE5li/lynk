@@ -3,7 +3,7 @@
 ## Decision
 
 The `wit` provider of [nexus](nexus:nexus.self) parses WIT files with
-`wit-parser` ([`nexus::wit`](nexus:rust.module)), the parser of the Bytecode Alliance's
+`wit-parser` ([`nexus::providers::wit`](nexus:rust.module)), the parser of the Bytecode Alliance's
 `wasm-tools`, without its default features. A file is parsed together with
 the other WIT files of its directory, as they may form one package, or
 alone if they do not parse; dependencies are not resolved. A function is
@@ -12,7 +12,7 @@ found by the span of its name.
 The links in a WIT file's comments, plain and doc comments alike, are read
 with the reader of Rust comments, not with `wit-parser`, as its
 [Decision](nexus:markdown.section
-  (adrs/reads-rust-comments-with-rustc-lexer.md)) describes.
+  (design/reads-rust-comments-with-rustc-lexer.md)) describes.
 
 ## Why
 

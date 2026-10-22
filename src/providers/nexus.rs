@@ -5,7 +5,7 @@ use std::path::{Path, PathBuf};
 use crate::command;
 use crate::link::{Member, Shape};
 use crate::location::{Position, Span};
-use crate::provider::{self, MemberError, Place, Provider, Query, check_complete_map, no_arguments};
+use crate::providers::{self, MemberError, Place, Provider, Query, check_complete_map, no_arguments};
 use crate::workspace::Workspace;
 
 pub const NAME: &str = "nexus";
@@ -53,7 +53,7 @@ enum NexusQuery {
 impl Query for NexusQuery {
     fn resolve(&self, workspace: &Workspace) -> Vec<Span> {
         match self {
-            Self::Selectors => vec![Span::whole_file(&own_source(workspace, provider::SOURCE))],
+            Self::Selectors => vec![Span::whole_file(&own_source(workspace, providers::SOURCE))],
             Self::Tool => vec![Span::whole_file(&own_source(workspace, ""))],
             Self::Command(command) => {
                 let position = Position {
@@ -71,7 +71,7 @@ impl Query for NexusQuery {
 
     fn check_members(&self, members: &[Member], _workspace: &Workspace) -> Vec<MemberError> {
         match self {
-            Self::Selectors => check_complete_map(members, &provider::selector_names()),
+            Self::Selectors => check_complete_map(members, &providers::selector_names()),
             _ => Vec::new(),
         }
     }
@@ -90,12 +90,16 @@ mod tests {
     use clap::CommandFactory;
 
     use super::*;
-    use crate::provider::tests::{assert_query, read_first_link};
+    use crate::providers::tests::{assert_query, read_first_link};
 
     #[test]
     fn every_command_selector_names_a_subcommand() {
         let cli = command::Cli::command();
-        for selector in Nexus.selectors().iter().filter(|selector| !matches!(**selector, "selectors" | "self")) {
+        for selector in Nexus
+            .selectors()
+            .iter()
+            .filter(|selector| !matches!(**selector, "selectors" | "self"))
+        {
             assert!(cli.find_subcommand(selector).is_some(), "{selector}");
         }
     }

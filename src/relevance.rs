@@ -1,6 +1,6 @@
 //! Re-ranks `find`'s best word matches by asking TypeSafe whether each one
-//! is relevant to the task; its ADR's
-//! [Decision](nexus:markdown.section (adrs/find-re-ranks-with-typesafe.md))
+//! is relevant to the task; its design record's
+//! [Decision](nexus:markdown.section (design/find-re-ranks-with-typesafe.md))
 //! says why.
 
 use std::time::Duration;

@@ -1,5 +1,5 @@
 //! The `rust` provider reads source files with `syn`, without building
-//! anything; [Decision](nexus:markdown.section (adrs/reads-rust-with-syn.md))
+//! anything; [Decision](nexus:markdown.section (design/reads-rust-with-syn.md))
 //! says why and what that leaves out.
 
 use std::path::{Path, PathBuf};

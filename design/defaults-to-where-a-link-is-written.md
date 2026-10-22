@@ -7,7 +7,7 @@ the link is written inside it: a Markdown file for a section, a Rust
 function for one of its arguments (the README's
 [Selectors](nexus:markdown.section (README.md))). The link's
 file and first line are all a selector gets to decide
-([`nexus::provider`](nexus:rust.module)). On the command line, where
+([`nexus::providers`](nexus:rust.module)). On the command line, where
 nothing holds the link, those arguments are required.
 
 ## Why

@@ -8,7 +8,7 @@ a complete map of its selectors (the README's
 syntax rather than a selector: it is not listed among the selectors, and
 it asks nothing of its descriptions. Text exercising or describing every
 selector of a provider, like
-[`adrs/lints-its-providers-against-resources.md`](nexus:filesystem.file),
+[`design/lints-its-providers-against-resources.md`](nexus:filesystem.file),
 uses it so that adding a selector fails [`nexus lint`](nexus:nexus.lint) until the text follows.
 Nothing requires a provider to be mapped anywhere.
 

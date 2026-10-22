@@ -1,37 +1,19 @@
-//! WIT: a format whose comments are written as in Rust, and a provider of
-//! its functions. The provider reads WIT files with `wit-parser`, without
-//! resolving dependencies; its ADR's
-//! [Decision](nexus:markdown.section (adrs/reads-wit-with-wit-parser.md))
+//! The functions of WIT files, read with `wit-parser` without resolving
+//! dependencies; its design record's
+//! [Decision](nexus:markdown.section (design/reads-wit-with-wit-parser.md))
 //! says why.
 
 use std::path::{Path, PathBuf};
 
 use wit_parser::{Function, FunctionKind, SourceMap, UnresolvedPackage, WorldItem};
 
-use crate::format::Format;
+use crate::formats::wit::NAME;
 use crate::link::Shape;
 use crate::location::{LineIndex, Span};
-use crate::provider::{Place, Provider, Query, normalize};
-use crate::rust::comments;
-use crate::workspace::{LinkedDocument, Workspace};
-
-pub const NAME: &str = "wit";
+use crate::providers::{Place, Provider, Query, normalize};
+use crate::workspace::Workspace;
 
 pub struct Wit;
-
-impl Format for Wit {
-    fn name(&self) -> &'static str {
-        NAME
-    }
-
-    fn extensions(&self) -> &'static [&'static str] {
-        &["wit"]
-    }
-
-    fn read(&self, path: PathBuf, text: String) -> LinkedDocument {
-        comments::read(NAME, path, text)
-    }
-}
 
 impl Provider for Wit {
     fn name(&self) -> &'static str {

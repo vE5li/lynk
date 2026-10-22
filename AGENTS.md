@@ -64,10 +64,8 @@ reviewed. Never add selectors in advance.
 
 ## Decisions
 
-Decisions about the architecture or the tooling are recorded in a
-top-level `adrs` directory (here [`adrs`](nexus:filesystem.directory)),
-one short file per decision, named after it, with three sections:
-*Decision* (what was decided), *Why* and *Alternatives* (what was
-discarded, and why). Like any text, an ADR links to what it is about. When
-a decision changes, update its ADR in the same change; the history lives
-in version control.
+Decisions about the architecture or the tooling are recorded in
+[`design`](nexus:filesystem.directory), following the
+[Decision](nexus:markdown.section (design/records-decisions-as-living-design-records.md))
+of the record about how they are recorded. When a decision changes,
+update its record in the same change.

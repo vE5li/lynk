@@ -5,7 +5,7 @@
 Files exercising what [nexus](nexus:nexus.self)'s own source does not live
 in a top-level `resources` directory: languages it reads but is not
 written in, and the ways of writing its own language that it does not use.
-This ADR links to everything in them, so every run of
+This record links to everything in them, so every run of
 [`nexus lint`](nexus:nexus.lint) on this repository checks those providers
 against real files:
 
