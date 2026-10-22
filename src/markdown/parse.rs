@@ -1,3 +1,6 @@
+//! The parts of a Markdown text links need, as `pulldown-cmark` parses
+//! them.
+
 use std::ops::Range;
 
 use pulldown_cmark::{Event, Parser, Tag, TagEnd};

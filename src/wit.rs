@@ -1,5 +1,6 @@
-//! The `wit` provider reads WIT files with `wit-parser`, without resolving
-//! dependencies; its ADR's
+//! WIT: a format whose comments are written as in Rust, and a provider of
+//! its functions. The provider reads WIT files with `wit-parser`, without
+//! resolving dependencies; its ADR's
 //! [Decision](nexus:markdown.section (adrs/reads-wit-with-wit-parser.md))
 //! says why.
 
@@ -7,13 +8,74 @@ use std::path::{Path, PathBuf};
 
 use wit_parser::{Function, FunctionKind, SourceMap, UnresolvedPackage, WorldItem};
 
+use crate::format::Format;
+use crate::link::Shape;
 use crate::location::{LineIndex, Span};
+use crate::provider::{Place, Provider, Query, normalize};
+use crate::rust::comments;
+use crate::workspace::{LinkedDocument, Workspace};
+
+pub const NAME: &str = "wit";
+
+pub struct Wit;
+
+impl Format for Wit {
+    fn name(&self) -> &'static str {
+        NAME
+    }
+
+    fn extensions(&self) -> &'static [&'static str] {
+        &["wit"]
+    }
+
+    fn read(&self, path: PathBuf, text: String) -> LinkedDocument {
+        comments::read(NAME, path, text)
+    }
+}
+
+impl Provider for Wit {
+    fn name(&self) -> &'static str {
+        NAME
+    }
+
+    fn selectors(&self) -> &'static [&'static str] {
+        &["function"]
+    }
+
+    fn shape(&self, _selector: &str) -> Shape {
+        Shape::LINK
+    }
+
+    fn query(&self, selector: &str, arguments: &[&str], _place: Option<&Place>) -> Result<Box<dyn Query>, String> {
+        match arguments {
+            [file, name] => Ok(Box::new(WitFunction {
+                file: normalize(file),
+                name: (*name).to_owned(),
+            })),
+            _ => Err(format!("`{NAME}.{selector}` takes a file and a function")),
+        }
+    }
+}
+
+/// The functions of a WIT file with a name, `<resource>.<function>` for a
+/// resource's.
+#[derive(Debug)]
+struct WitFunction {
+    file: PathBuf,
+    name: String,
+}
+
+impl Query for WitFunction {
+    fn resolve(&self, workspace: &Workspace) -> Vec<Span> {
+        find_function(&workspace.root, &self.file, &self.name)
+    }
+}
 
 /// The spans of the names of the functions called [`name`](nexus:rust.argument)
 /// in the WIT file at [`file`](nexus:rust.argument), relative to
 /// [`root`](nexus:rust.argument). A resource's functions are named after it,
 /// `<resource>.<function>`, its constructor `<resource>.constructor`.
-pub fn find_function(root: &Path, file: &Path, name: &str) -> Vec<Span> {
+fn find_function(root: &Path, file: &Path, name: &str) -> Vec<Span> {
     let absolute = root.join(file);
     let Ok(text) = std::fs::read_to_string(&absolute) else {
         return Vec::new();

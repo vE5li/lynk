@@ -1,13 +1,15 @@
 mod command;
 mod document;
+mod filesystem;
 mod find;
+mod format;
 mod link;
 mod location;
 mod markdown;
+mod nexus;
+mod provider;
 mod relevance;
 mod rust;
-mod rust_comment;
-mod selector;
 mod wit;
 mod workspace;
 
@@ -18,7 +20,7 @@ use clap::Parser;
 use command::{Cli, Command, QueryArguments};
 use link::{Argument, Link, Member, SyntaxError};
 use location::Span;
-use selector::Query;
+use provider::Query;
 use workspace::{LinkedDocument, Workspace, find_root};
 
 fn main() -> ExitCode {
@@ -43,19 +45,19 @@ fn run(cli: Cli) -> Result<ExitCode, String> {
 
     match cli.command {
         Command::Lint => Ok(lint(&workspace)),
-        Command::Where(arguments) => Ok(print_where(&workspace, &query_from_command_line(arguments)?)),
-        Command::Ref(arguments) => Ok(print_references(&workspace, &query_from_command_line(arguments)?)),
+        Command::Where(arguments) => Ok(print_where(&workspace, query_from_command_line(arguments)?.as_ref())),
+        Command::Ref(arguments) => Ok(print_references(&workspace, query_from_command_line(arguments)?.as_ref())),
         Command::Find { words } => Ok(print_found(&workspace, &words.join(" "))),
     }
 }
 
-fn query_from_command_line(query: QueryArguments) -> Result<Query, String> {
+fn query_from_command_line(query: QueryArguments) -> Result<Box<dyn Query>, String> {
     let arguments: Vec<Argument> = query.arguments.into_iter().map(|text| Argument { text, quoted: false }).collect();
-    Query::new(&query.selector, &arguments, None)
+    provider::query(&query.selector, &arguments, None)
 }
 
-fn query_of_link(linked: &LinkedDocument, link: &Link) -> Result<(Query, Vec<Member>), SyntaxError> {
-    Query::of_link(link, &linked.document)
+fn query_of_link(linked: &LinkedDocument, link: &Link) -> Result<(Box<dyn Query>, Vec<Member>), SyntaxError> {
+    provider::of_link(link, &linked.document)
 }
 
 fn lint(workspace: &Workspace) -> ExitCode {
@@ -110,7 +112,7 @@ fn lint(workspace: &Workspace) -> ExitCode {
     ExitCode::SUCCESS
 }
 
-fn print_where(workspace: &Workspace, query: &Query) -> ExitCode {
+fn print_where(workspace: &Workspace, query: &dyn Query) -> ExitCode {
     let targets = query.resolve(workspace);
 
     for target in &targets {
@@ -120,7 +122,7 @@ fn print_where(workspace: &Workspace, query: &Query) -> ExitCode {
     if targets.is_empty() { ExitCode::FAILURE } else { ExitCode::SUCCESS }
 }
 
-fn print_references(workspace: &Workspace, query: &Query) -> ExitCode {
+fn print_references(workspace: &Workspace, query: &dyn Query) -> ExitCode {
     let targets: HashSet<Span> = query.resolve(workspace).into_iter().collect();
     let mut found = false;
     for linked in &workspace.documents {

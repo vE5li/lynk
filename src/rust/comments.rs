@@ -4,10 +4,52 @@
 //! (adrs/reads-rust-comments-with-rustc-lexer.md)) says how and why.
 
 use std::ops::Range;
+use std::path::PathBuf;
 
 use ra_ap_rustc_lexer::{FrontmatterAllowed, TokenKind, tokenize};
 
-use crate::markdown::{self, MarkdownLink};
+use crate::document::{Document, Unit};
+use crate::markdown::parse::{self, MarkdownLink};
+use crate::markdown::find_links;
+use crate::workspace::LinkedDocument;
+
+/// Titles taken from source code are cut, since a line of code may be long.
+const TITLE_CHARACTERS: usize = 80;
+
+/// Reads a file of a [`format`](nexus:rust.argument) writing comments as
+/// Rust does: its comments are its prose, read as Markdown, links included,
+/// and each run of comment lines is a unit.
+pub fn read(format: &'static str, path: PathBuf, text: String) -> LinkedDocument {
+    let comments = comment_text(&text);
+    let units = comments.blocks.iter().map(|block| unit(&text, &comments.text, block.clone())).collect();
+    let document = Document {
+        path,
+        format,
+        prose: comments.text,
+        text,
+        code_ranges: comments.code_ranges,
+        headings: Vec::new(),
+        units,
+    };
+    LinkedDocument::new(document, |document| find_links(document, &comments.links))
+}
+
+/// A run of comment lines, titled by the line of code it is about: the line
+/// after it, or its own line for a comment behind code.
+fn unit(source: &str, prose: &str, block: Range<usize>) -> Unit {
+    let line_start = source[..block.start].rfind('\n').map_or(0, |found| found + 1);
+    let code_before = source[line_start..block.start].trim_end_matches(['/', '*', '!']).trim();
+    let next_line = source[block.end..].lines().nth(1).unwrap_or_default().trim();
+    let title = match code_before {
+        code if !code.is_empty() => code,
+        _ if !next_line.is_empty() => next_line,
+        _ => prose[block.clone()].lines().next().unwrap_or_default().trim(),
+    };
+    Unit {
+        title: title.chars().take(TITLE_CHARACTERS).collect(),
+        range: block,
+    }
+}
 
 pub struct CommentText {
     /// The source with everything but the comments' text blanked out, byte
@@ -153,7 +195,7 @@ fn parse_block(source: &str, block: &[CommentLine]) -> (Vec<Range<usize>>, Vec<M
         source_start + markdown_offset - markdown_start
     };
     let to_source_range = |range: Range<usize>| to_source(range.start)..to_source(range.end.saturating_sub(1)) + 1;
-    let parsed = markdown::parse(&markdown_text);
+    let parsed = parse::parse(&markdown_text);
     let code_ranges = parsed.code_ranges.into_iter().map(to_source_range).collect();
     let links = parsed
         .links

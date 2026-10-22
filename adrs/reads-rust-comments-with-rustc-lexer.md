@@ -5,7 +5,7 @@
 [nexus](nexus:nexus.self) reads the links in every comment of a Rust file,
 plain and doc comments alike, and nothing else of it. It finds them with
 `ra-ap-rustc_lexer`, rustc's own lexer as published for rust-analyzer
-([`nexus::rust_comment`](nexus:rust.module)). Each run of comment lines on
+([`nexus::rust::comments`](nexus:rust.module)). Each run of comment lines on
 consecutive lines is read as Markdown, so links are Markdown links, inline
 code and code blocks hold examples, as in Markdown files, and each run is
 one of the units [`nexus find`](nexus:nexus.find) searches, titled by the

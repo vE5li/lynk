@@ -17,7 +17,7 @@ Every variant maps to a single opcode in the VM:
 <!-- /nexus -->
 ```
 
-It reads the file types [`nexus::document`](nexus:rust.module) defines:
+It reads the file types [`nexus::format`](nexus:rust.module) lists:
 documentation whole, source code only in its comments.
 
 ## Commands

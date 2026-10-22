@@ -30,7 +30,7 @@ pub fn find(workspace: &Workspace, query: &str) -> Vec<Found> {
     for linked in &workspace.documents {
         let document = &linked.document;
         let path = document.path.to_string_lossy();
-        for unit in document.units() {
+        for unit in &document.units {
             let name = format!("{path} {}", unit.title);
             let text = &document.prose[unit.range.clone()];
             let score = score(&terms, &stems(&name), &stems(text));
@@ -38,8 +38,12 @@ pub fn find(workspace: &Workspace, query: &str) -> Vec<Found> {
                 found.push(Found {
                     score,
                     text: text.to_owned(),
-                    span: document.span(unit.range),
-                    title: if unit.title.is_empty() { path.to_string() } else { unit.title },
+                    span: document.span(unit.range.clone()),
+                    title: if unit.title.is_empty() {
+                        path.to_string()
+                    } else {
+                        unit.title.clone()
+                    },
                     relevance: None,
                 });
             }

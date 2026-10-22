@@ -1,12 +1,26 @@
 use std::path::{Path, PathBuf};
 
-use crate::document::{Document, Format};
-use crate::link::{Link, SyntaxError, find_links};
+use crate::document::Document;
+use crate::format;
+use crate::link::{Found, Link, SyntaxError};
 
 pub struct LinkedDocument {
     pub document: Document,
     pub links: Vec<Link>,
     pub syntax_errors: Vec<SyntaxError>,
+}
+
+impl LinkedDocument {
+    /// The [`document`](nexus:rust.argument) with the links
+    /// [`find`](nexus:rust.argument) finds in it.
+    pub fn new(document: Document, find: impl FnOnce(&Document) -> Found) -> Self {
+        let found = find(&document);
+        Self {
+            document,
+            links: found.links,
+            syntax_errors: found.errors,
+        }
+    }
 }
 
 /// Every file of the repository that may contain links.
@@ -22,7 +36,7 @@ impl Workspace {
         // so a file reachable under two names is read once.
         for entry in ignore::WalkBuilder::new(&root).build() {
             let entry = entry.map_err(std::io::Error::other)?;
-            let Some(format) = Format::of(entry.path()) else {
+            let Some(format) = format::of(entry.path()) else {
                 continue;
             };
             if !entry.file_type().is_some_and(|file_type| file_type.is_file()) {
@@ -30,13 +44,7 @@ impl Workspace {
             }
             let text = std::fs::read_to_string(entry.path())?;
             let relative_path = entry.path().strip_prefix(&root).unwrap_or(entry.path()).to_owned();
-            let document = Document::parse(relative_path, format, text);
-            let found = find_links(&document);
-            documents.push(LinkedDocument {
-                document,
-                links: found.links,
-                syntax_errors: found.errors,
-            });
+            documents.push(format.read(relative_path, text));
         }
         documents.sort_by(|first, second| first.document.path.cmp(&second.document.path));
         Ok(Self { root, documents })
