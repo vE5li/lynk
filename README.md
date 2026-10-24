@@ -121,6 +121,7 @@ writes them, starting with the crate:
 - rust.item: `<item path>`, any item but a module or an import, its attributes and doc comment included; an associated item's path goes through its type or trait, a variant's through its enum
 - rust.argument: `[function path] <argument>`, an argument of a function, `self` for its receiver; a method's path goes through its type or trait
 - wit.function: `<file> <function>`, the functions with that name in its interfaces and worlds; a resource's as `<resource>.<function>`, its constructor as `<resource>.constructor`
+- protobuf.message: `<file> <message>`, from its keyword to its closing brace; a nested message's as `<outer>.<message>`, without the package
 - nexus.selectors: no arguments; a complete map of these selectors
 - nexus.self: no arguments; the tool itself
 - nexus.lint: no arguments; its command checking every link
@@ -133,10 +134,9 @@ Selectors planned so far:
 
 - `rust.map-variant` / `rust.partial-map-variant
   <enum>`; `rust.map-field` / `rust.partial-map-field <struct>`.
-- `protobuf.message <file> <message>`; `protobuf.message-field <file>
-  <message> <field>`; `protobuf.map-field` / `protobuf.partial-map-field
-  <file> <message>`; `protobuf.map-message` / `protobuf.partial-map-message
-  <file>`.
+- `protobuf.message-field <file> <message> <field>`;
+  `protobuf.map-field` / `protobuf.partial-map-field <file> <message>`;
+  `protobuf.map-message` / `protobuf.partial-map-message <file>`.
 - `filesystem.partial-map-entry <directory>`.
 
 ---

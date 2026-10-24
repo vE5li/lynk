@@ -26,6 +26,9 @@ is updated:
   `<!-- /nexus -->` in code nor a lone " ends or quotes anything here
 - nexus.wit: what a nested link such as
   [`find`](nexus:wit.function (resources/nexus.wit)) checks against
+- nexus.proto: what a link wrapped inside its title, such as
+  [`LintResponse.Problem`](nexus:protobuf.message
+    (resources/nexus.proto)), checks against
 <!-- /nexus -->
 
 ## Why

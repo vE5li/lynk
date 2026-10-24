@@ -16,7 +16,9 @@ A language has a submodule in each module whose role it plays, like
 [`nexus::formats::rust`](nexus:rust.module) and
 [`nexus::providers::rust`](nexus:rust.module). Formats share what they
 have in common by calling each other: a format whose comments are
-Markdown reads them with the Markdown format's reader of links. A
+Markdown finds them itself, as only it knows its language's tokens, and
+reads them with the Markdown format's reader of comments
+([`nexus::formats::markdown::comments`](nexus:rust.module)). A
 provider may ask which format a file has, but no format depends on a
 provider. What is common to every link, its selector name, arguments and
 body, and how a selector reads them, belongs to neither role

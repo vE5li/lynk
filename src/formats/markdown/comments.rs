@@ -1,0 +1,268 @@
+//! Comments read as Markdown, for every format whose comments are its
+//! prose: the format finds the lines of its comments, and this module reads
+//! them, each run of comment lines on consecutive lines as one Markdown
+//! text.
+
+use std::ops::Range;
+use std::path::PathBuf;
+
+use super::find_links;
+use super::parse::{self, MarkdownLink};
+use crate::document::{Document, Unit};
+use crate::workspace::LinkedDocument;
+
+/// Titles taken from source code are cut, since a line of code may be long.
+const TITLE_CHARACTERS: usize = 80;
+
+/// The text of one line of a comment, without its comment markers.
+pub struct CommentLine {
+    /// Counted from 0.
+    pub line_number: usize,
+    pub range: Range<usize>,
+}
+
+/// Reads a file of a [`format`](nexus:rust.argument) whose comments, the
+/// [`lines`](nexus:rust.argument) it found in it, are its prose: read as
+/// Markdown, links included, each run of comment lines being a unit.
+pub fn read(format: &'static str, path: PathBuf, text: String, lines: &[CommentLine]) -> LinkedDocument {
+    let comments = comment_text(&text, lines);
+    let units = comments
+        .blocks
+        .iter()
+        .map(|block| unit(&text, &comments.text, block.clone()))
+        .collect();
+    let document = Document {
+        path,
+        format,
+        prose: comments.text,
+        text,
+        code_ranges: comments.code_ranges,
+        headings: Vec::new(),
+        units,
+    };
+    LinkedDocument::new(document, |document| find_links(document, &comments.links))
+}
+
+/// Each line of a block comment, the comment at
+/// [`start`](nexus:rust.argument) in its source, without its opening
+/// marker, the first [`opening_length`](nexus:rust.argument) bytes, its
+/// closing one, the last [`closing_length`](nexus:rust.argument), and a
+/// leading `*` lining the comment up.
+pub fn block_comment_lines(
+    comment: &str,
+    start: usize,
+    first_line_number: usize,
+    opening_length: usize,
+    closing_length: usize,
+) -> Vec<CommentLine> {
+    let inner_range = opening_length.min(comment.len() - closing_length)..comment.len() - closing_length;
+    let mut lines = Vec::new();
+    let mut line_start = inner_range.start;
+    for (index, line) in comment[inner_range.clone()].split('\n').enumerate() {
+        let mut content_start = line_start;
+        if index > 0 {
+            let indentation = line.len() - line.trim_start().len();
+            let rest = &line[indentation..];
+            if rest.starts_with('*') && !rest.starts_with("*/") {
+                content_start += indentation + 1;
+            }
+        }
+        lines.push(CommentLine {
+            line_number: first_line_number + index,
+            range: start + content_start..start + line_start + line.len(),
+        });
+        line_start += line.len() + 1;
+    }
+    lines
+}
+
+/// A run of comment lines, titled by the line of code it is about: the line
+/// after it, or its own line for a comment behind code.
+fn unit(source: &str, prose: &str, block: Range<usize>) -> Unit {
+    let line_start = source[..block.start].rfind('\n').map_or(0, |found| found + 1);
+    let code_before = source[line_start..block.start].trim_end_matches(['/', '*', '!']).trim();
+    let next_line = source[block.end..].lines().nth(1).unwrap_or_default().trim();
+    let title = match code_before {
+        code if !code.is_empty() => code,
+        _ if !next_line.is_empty() => next_line,
+        _ => prose[block.clone()].lines().next().unwrap_or_default().trim(),
+    };
+    Unit {
+        title: title.chars().take(TITLE_CHARACTERS).collect(),
+        range: block,
+    }
+}
+
+struct CommentText {
+    /// The source with everything but the comments' text blanked out, byte
+    /// for byte; line breaks are kept.
+    text: String,
+    /// Inline code and code blocks inside the comments.
+    code_ranges: Vec<Range<usize>>,
+    /// The Markdown links inside the comments.
+    links: Vec<MarkdownLink>,
+    /// Each run of comment lines on consecutive lines, from the start of
+    /// its first line's text to the end of its last.
+    blocks: Vec<Range<usize>>,
+}
+
+fn comment_text(source: &str, lines: &[CommentLine]) -> CommentText {
+    let mut text: Vec<u8> = source.bytes().map(|byte| if byte == b'\n' { b'\n' } else { b' ' }).collect();
+    for line in lines {
+        text[line.range.clone()].copy_from_slice(&source.as_bytes()[line.range.clone()]);
+    }
+    let blocks = blocks(lines);
+    let mut code_ranges = Vec::new();
+    let mut links = Vec::new();
+    for block in &blocks {
+        let (block_code_ranges, block_links) = parse_block(source, block);
+        code_ranges.extend(block_code_ranges);
+        links.extend(block_links);
+    }
+    CommentText {
+        // Only whole characters were copied and only ASCII blanked out.
+        text: String::from_utf8(text).expect("blanking keeps the text valid UTF-8"),
+        code_ranges,
+        links,
+        blocks: blocks
+            .iter()
+            .map(|block| block[0].range.start..block[block.len() - 1].range.end)
+            .collect(),
+    }
+}
+
+/// Runs of comment lines on consecutive source lines, each read as one
+/// Markdown text.
+fn blocks(lines: &[CommentLine]) -> Vec<&[CommentLine]> {
+    let mut blocks = Vec::new();
+    let mut block_start = 0;
+    for index in 1..=lines.len() {
+        let continues = index < lines.len() && lines[index].line_number == lines[index - 1].line_number + 1;
+        if !continues {
+            blocks.push(&lines[block_start..index]);
+            block_start = index;
+        }
+    }
+    blocks.retain(|block| !block.is_empty());
+    blocks
+}
+
+/// The block's code ranges and links in the source: its lines, stripped of
+/// the indentation they share, are parsed as Markdown, and the ranges found
+/// are mapped back line by line.
+fn parse_block(source: &str, block: &[CommentLine]) -> (Vec<Range<usize>>, Vec<MarkdownLink>) {
+    let indentation = block
+        .iter()
+        .map(|line| &source[line.range.clone()])
+        .filter(|text| !text.trim().is_empty())
+        .map(|text| text.len() - text.trim_start().len())
+        .min()
+        .unwrap_or(0);
+    let mut markdown_text = String::new();
+    // Where each line starts, in the Markdown text and in the source.
+    let mut line_starts = Vec::new();
+    for line in block {
+        let text = &source[line.range.clone()];
+        let skipped = indentation.min(text.len() - text.trim_start().len());
+        line_starts.push((markdown_text.len(), line.range.start + skipped));
+        markdown_text.push_str(&text[skipped..]);
+        markdown_text.push('\n');
+    }
+    let to_source = |markdown_offset: usize| {
+        let line_index = line_starts.partition_point(|(start, _)| *start <= markdown_offset) - 1;
+        let (markdown_start, source_start) = line_starts[line_index];
+        source_start + markdown_offset - markdown_start
+    };
+    let to_source_range = |range: Range<usize>| to_source(range.start)..to_source(range.end.saturating_sub(1)) + 1;
+    let parsed = parse::parse(&markdown_text);
+    let code_ranges = parsed.code_ranges.into_iter().map(to_source_range).collect();
+    let links = parsed
+        .links
+        .into_iter()
+        .map(|link| MarkdownLink {
+            range: to_source_range(link.range),
+            ..link
+        })
+        .collect();
+    (code_ranges, links)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// A line comment per line starting with `//`, enough to test reading
+    /// comments apart from finding them.
+    fn line_comments(source: &str) -> Vec<CommentLine> {
+        let mut offset = 0;
+        let mut lines = Vec::new();
+        for (line_number, line) in source.split('\n').enumerate() {
+            if let Some(marker) = line.find("//") {
+                lines.push(CommentLine {
+                    line_number,
+                    range: offset + marker + 2..offset + line.len(),
+                });
+            }
+            offset += line.len() + 1;
+        }
+        lines
+    }
+
+    fn code(source: &str) -> Vec<&str> {
+        comment_text(source, &line_comments(source))
+            .code_ranges
+            .into_iter()
+            .map(|range| source[range].trim())
+            .collect()
+    }
+
+    #[test]
+    fn keeps_comments_and_blanks_out_code() {
+        let source = "// first\ncode // second\n";
+        let comments = comment_text(source, &line_comments(source));
+        assert_eq!(comments.text.split_whitespace().collect::<Vec<_>>(), vec!["first", "second"]);
+        assert_eq!(comments.text.len(), source.len());
+    }
+
+    #[test]
+    fn strips_the_markers_of_block_comments() {
+        let comment = "/*\n * first\n * second\n */";
+        let lines: Vec<&str> = block_comment_lines(comment, 0, 0, 2, 2)
+            .into_iter()
+            .map(|line| comment[line.range].trim())
+            .collect();
+        assert_eq!(lines, vec!["", "first", "second", ""]);
+    }
+
+    #[test]
+    fn finds_inline_code_and_code_blocks() {
+        let source = "// See `[a](nexus:a.b)`.\n//\n// ```\n// [c](nexus:c.d)\n// ```\ncode\n";
+        assert_eq!(code(source), vec!["`[a](nexus:a.b)`", "```\n// [c](nexus:c.d)\n// ```"]);
+        assert!(comment_text(source, &line_comments(source)).links.is_empty());
+    }
+
+    #[test]
+    fn finds_links_spread_over_comment_lines() {
+        let source = "// See [it](nexus:a.b\n//   (c d)).\ncode\n";
+        let links = comment_text(source, &line_comments(source)).links;
+        assert_eq!(&source[links[0].range.clone()], "[it](nexus:a.b\n//   (c d))");
+        assert_eq!(links[0].title.as_deref(), Some("c d"));
+    }
+
+    #[test]
+    fn groups_comments_on_consecutive_lines() {
+        let source = "// first\n// second\ncode\n\n// third\n";
+        let blocks: Vec<_> = comment_text(source, &line_comments(source))
+            .blocks
+            .into_iter()
+            .map(|range| &source[range])
+            .collect();
+        assert_eq!(blocks, vec![" first\n// second", " third"]);
+    }
+
+    #[test]
+    fn does_not_mistake_indentation_for_a_code_block() {
+        let source = "code {\n        // [a](nexus:a.b)\n}\n";
+        assert!(code(source).is_empty());
+    }
+}

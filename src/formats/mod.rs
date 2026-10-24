@@ -2,6 +2,7 @@
 //! way: what of them is prose, what is code, and how links are written.
 
 pub mod markdown;
+pub mod protobuf;
 pub mod rust;
 pub mod wit;
 
@@ -19,7 +20,7 @@ pub trait Format {
     fn read(&self, path: PathBuf, text: String) -> LinkedDocument;
 }
 
-pub const FORMATS: &[&dyn Format] = &[&markdown::Markdown, &rust::Rust, &wit::Wit];
+pub const FORMATS: &[&dyn Format] = &[&markdown::Markdown, &rust::Rust, &wit::Wit, &protobuf::Protobuf];
 
 /// The format of the file at [`path`](nexus:rust.argument), by its
 /// extension.

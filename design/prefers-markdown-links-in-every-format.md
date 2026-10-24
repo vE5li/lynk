@@ -10,7 +10,8 @@ them as Markdown links and maps, as
 [Link syntax](nexus:markdown.section (README.md)) describes, whenever its
 prose can be read as Markdown: Markdown files, and comments and other
 prose that their own tools already render as Markdown, such as Rust's and
-WIT's. Only where Markdown would be foreign to the language, or cannot be
+WIT's, or protobuf's, which its documentation generators commonly render
+as Markdown. Only where Markdown would be foreign to the language, or cannot be
 written at all, does a format define a syntax of its own, and that syntax
 still yields the same selector name, arguments and body.
 

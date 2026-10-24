@@ -11,6 +11,7 @@ against real files:
 
 <!-- nexus filesystem.map-entry resources -->
 - nexus.wit: WIT describing nexus as a component
+- nexus.proto: protobuf describing nexus as a service
 - nexus-client: a Rust crate running nexus's command line, with its README
 <!-- /nexus -->
 
@@ -33,6 +34,18 @@ declares a function:
     [`workspace.lint`](nexus:wit.function (resources/nexus.wit)),
     [`workspace.locate`](nexus:wit.function (resources/nexus.wit)) and
     [`workspace.references`](nexus:wit.function (resources/nexus.wit)).
+<!-- /nexus -->
+
+The protobuf file describes the same as messages of a service. Its
+comments link to nexus too, in both of protobuf's comment forms, and its
+messages are linked here, one link per way protobuf declares a message:
+
+<!-- nexus protobuf.* -->
+- message:
+  - At the top level of the file:
+    [`LintRequest`](nexus:protobuf.message (resources/nexus.proto)).
+  - Nested in another message:
+    [`LintResponse.Problem`](nexus:protobuf.message (resources/nexus.proto)).
 <!-- /nexus -->
 
 The Rust crate is a client of nexus, offering in Rust what the WIT file

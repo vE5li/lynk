@@ -1,6 +1,7 @@
 //! Markdown files, prose whole, and the Markdown way of writing links,
 //! which every format whose prose is Markdown reads with it.
 
+pub mod comments;
 mod links;
 pub mod parse;
 

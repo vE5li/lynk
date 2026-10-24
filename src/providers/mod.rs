@@ -12,6 +12,7 @@ use crate::workspace::Workspace;
 mod filesystem;
 mod markdown;
 pub mod nexus;
+mod protobuf;
 mod rust;
 mod wit;
 
@@ -37,7 +38,14 @@ pub trait Query: Debug {
     }
 }
 
-pub const PROVIDERS: &[&dyn Provider] = &[&markdown::Markdown, &filesystem::Filesystem, &rust::Rust, &wit::Wit, &nexus::Nexus];
+pub const PROVIDERS: &[&dyn Provider] = &[
+    &markdown::Markdown,
+    &filesystem::Filesystem,
+    &rust::Rust,
+    &wit::Wit,
+    &protobuf::Protobuf,
+    &nexus::Nexus,
+];
 
 /// This file, relative to the crate: where the providers are listed.
 pub const SOURCE: &str = file!();

@@ -482,7 +482,9 @@ mod tests {
         assert_eq!(item("an_example::directory::Shape::area"), vec![
             "src/directory/mod.rs:12:5-12:38"
         ]);
-        assert_eq!(item("an_example::directory::Mode::Fast"), vec!["src/directory/mod.rs:15:5-15:8"]);
+        assert_eq!(item("an_example::directory::Mode::Fast"), vec![
+            "src/directory/mod.rs:15:5-15:8"
+        ]);
         assert_eq!(item("an_example::directory::LIMIT"), vec!["src/directory/mod.rs:17:1-17:23"]);
         assert_eq!(item("an_example::directory::shout"), vec!["src/directory/mod.rs:18:1-20:1"]);
         assert_eq!(item("an_example::directory::abs"), vec!["src/directory/mod.rs:22:5-22:30"]);

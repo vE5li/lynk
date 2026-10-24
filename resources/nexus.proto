@@ -1,0 +1,30 @@
+// [nexus](nexus:nexus.self) as a service: the links of a repository,
+// checked and followed. Links are written as
+// [Link syntax](nexus:markdown.section (README.md)) defines them.
+syntax = "proto3";
+
+package nexus.tool;
+
+// A place in a file, as [`nexus::location`](nexus:rust.module) counts it:
+// path relative to the root, line and column from 1.
+message Span {
+  string path = 1;
+  uint32 line = 2;
+  uint32 column = 3;
+}
+
+/* Checks every link of the repository at `root`, as
+ * [`nexus lint`](nexus:nexus.lint) does. */
+message LintRequest {
+  string root = 1;
+}
+
+message LintResponse {
+  // A link that fails the lint, and why.
+  message Problem {
+    Span at = 1;
+    string message = 2;
+  }
+
+  repeated Problem problems = 1;
+}

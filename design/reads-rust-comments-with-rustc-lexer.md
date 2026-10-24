@@ -5,12 +5,19 @@
 [nexus](nexus:nexus.self) reads the links in every comment of a Rust file,
 plain and doc comments alike, and nothing else of it. It finds them with
 `ra-ap-rustc_lexer`, rustc's own lexer as published for rust-analyzer
-([`nexus::formats::rust`](nexus:rust.module)). Each run of comment lines on
-consecutive lines is read as Markdown, so links are Markdown links, inline
-code and code blocks hold examples, as in Markdown files, and each run is
-one of the units [`nexus find`](nexus:nexus.find) searches, titled by the
-line of code it is about. WIT files are read the same way (their
-[Decision](nexus:markdown.section (design/reads-wit-with-wit-parser.md))).
+([`nexus::formats::rust`](nexus:rust.module)). The lines of the comments
+are then read by the Markdown format, as every format's comments are
+([`nexus::formats::markdown::comments`](nexus:rust.module)): each run of
+comment lines on consecutive lines is read as Markdown, so links are
+Markdown links, inline code and code blocks hold examples, as in Markdown
+files, and each run is one of the units [`nexus find`](nexus:nexus.find)
+searches, titled by the line of code it is about. WIT files, whose
+comments follow Rust's, are lexed the same way (their
+[Decision](nexus:markdown.section (design/reads-wit-with-wit-parser.md)));
+languages whose comments only look like Rust's are lexed by their own
+format, as protobuf's
+[Decision](nexus:markdown.section
+  (design/reads-protobuf-with-protox-parse.md)) describes.
 
 ## Why
 
