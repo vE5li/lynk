@@ -6,7 +6,7 @@ use std::path::{Path, PathBuf};
 
 use syn::spanned::Spanned;
 use syn::visit::Visit;
-use syn::{FnArg, ForeignItem, Ident, ImplItem, Item, ItemMod, Pat, Signature, TraitItem, Type};
+use syn::{Fields, FnArg, ForeignItem, Ident, ImplItem, Item, ItemMod, Pat, Signature, TraitItem, Type};
 
 use crate::location::{Position, Span};
 
@@ -133,6 +133,84 @@ pub fn find_item(root: &Path, path: &str) -> Vec<Span> {
         }
     }
     spans
+}
+
+/// The enums at a path written as in Rust, `<module path>::<enum>`, each
+/// with the names of its variants.
+pub fn find_variants(root: &Path, path: &str) -> Vec<(Span, Vec<String>)> {
+    let segments: Vec<&str> = path.split("::").collect();
+    let Some((name, module_path)) = segments.split_last() else {
+        return Vec::new();
+    };
+    let Some(module) = module_at(root, module_path) else {
+        return Vec::new();
+    };
+    let file = relative(root, &module.file);
+    module
+        .items
+        .iter()
+        .filter_map(|item| match item {
+            Item::Enum(declaration) if declaration.ident == name => Some((
+                item_span(file.clone(), declaration),
+                declaration.variants.iter().map(|variant| variant.ident.to_string()).collect(),
+            )),
+            _ => None,
+        })
+        .collect()
+}
+
+/// The structs and variants with named fields at a path written as in
+/// Rust, a struct as `<module path>::<struct>` and a variant as
+/// `<module path>::<enum>::<variant>`, each with the names of its fields.
+/// Tuple and unit structs and variants have no named fields and are left
+/// out.
+pub fn find_fields(root: &Path, path: &str) -> Vec<(Span, Vec<String>)> {
+    let segments: Vec<&str> = path.split("::").collect();
+    let mut found = Vec::new();
+    if let Some((name, module_path)) = segments.split_last()
+        && let Some(module) = module_at(root, module_path)
+    {
+        let file = relative(root, &module.file);
+        for item in &module.items {
+            if let Item::Struct(declaration) = item
+                && declaration.ident == name
+                && let Some(names) = field_names(&declaration.fields)
+            {
+                found.push((item_span(file.clone(), declaration), names));
+            }
+        }
+    }
+    if let [module_path @ .., owner, name] = segments.as_slice()
+        && let Some(module) = module_at(root, module_path)
+    {
+        let file = relative(root, &module.file);
+        for item in &module.items {
+            if let Item::Enum(declaration) = item
+                && declaration.ident == owner
+            {
+                for variant in declaration.variants.iter().filter(|variant| variant.ident == name) {
+                    if let Some(names) = field_names(&variant.fields) {
+                        found.push((item_span(file.clone(), variant), names));
+                    }
+                }
+            }
+        }
+    }
+    found
+}
+
+/// The names of named fields, `None` for tuple and unit fields.
+fn field_names(fields: &Fields) -> Option<Vec<String>> {
+    match fields {
+        Fields::Named(named) => Some(
+            named
+                .named
+                .iter()
+                .filter_map(|field| Some(field.ident.as_ref()?.to_string()))
+                .collect(),
+        ),
+        _ => None,
+    }
 }
 
 /// The name a module's item is reached by, `None` for modules, imports,
@@ -419,6 +497,16 @@ mod tests {
                     "unsafe extern \"C\" {\n",
                     "    fn abs(value: i32) -> i32;\n",
                     "}\n",
+                    "pub struct Point {\n",
+                    "    x: i32,\n",
+                    "    y: i32,\n",
+                    "}\n",
+                    "pub struct Pair(u8, u8);\n",
+                    "pub enum Event {\n",
+                    "    Quit,\n",
+                    "    Key(char),\n",
+                    "    Move { x: i32, y: i32 },\n",
+                    "}\n",
                 ),
             ),
             ("src/elsewhere/moved.rs", ""),
@@ -530,6 +618,46 @@ mod tests {
         assert_eq!(argument(4, "value"), vec!["src/directory/mod.rs:4:14-4:22"]);
         assert_eq!(argument(8, "input"), vec!["src/directory/mod.rs:9:25-9:35"]);
         assert!(argument(6, "count").is_empty());
+        std::fs::remove_dir_all(root).unwrap();
+    }
+
+    fn members(found: Vec<(Span, Vec<String>)>) -> Vec<(String, Vec<String>)> {
+        found.into_iter().map(|(span, names)| (span.to_string(), names)).collect()
+    }
+
+    fn owned(names: &[&str]) -> Vec<String> {
+        names.iter().map(|&name| name.to_owned()).collect()
+    }
+
+    #[test]
+    fn finds_the_variants_of_enums_by_path() {
+        let root = temporary_package("variants");
+        let variants = |path| members(find_variants(&root, path));
+        assert_eq!(variants("an_example::directory::Event"), vec![(
+            "src/directory/mod.rs:29:1-33:1".to_owned(),
+            owned(&["Quit", "Key", "Move"])
+        )]);
+        assert!(variants("an_example::directory::Point").is_empty());
+        assert!(variants("an_example::directory::Event::Move").is_empty());
+        std::fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn finds_the_named_fields_of_structs_and_variants_by_path() {
+        let root = temporary_package("fields");
+        let fields = |path| members(find_fields(&root, path));
+        assert_eq!(fields("an_example::directory::Point"), vec![(
+            "src/directory/mod.rs:24:1-27:1".to_owned(),
+            owned(&["x", "y"])
+        )]);
+        assert_eq!(fields("an_example::directory::Event::Move"), vec![(
+            "src/directory/mod.rs:32:5-32:27".to_owned(),
+            owned(&["x", "y"])
+        )]);
+        assert!(fields("an_example::directory::Pair").is_empty());
+        assert!(fields("an_example::directory::Event::Key").is_empty());
+        assert!(fields("an_example::directory::Event::Quit").is_empty());
+        assert!(fields("an_example::directory::Event").is_empty());
         std::fs::remove_dir_all(root).unwrap();
     }
 }

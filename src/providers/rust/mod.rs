@@ -1,5 +1,5 @@
-//! What links point at in Rust source: its items, named by their paths, and
-//! its comments, found by their text.
+//! What links point at in Rust source: its items, named by their paths, the
+//! members of its enums and structs, and its comments, found by their text.
 
 mod comments;
 mod items;
@@ -8,9 +8,9 @@ use std::path::PathBuf;
 
 use crate::formats::rust::NAME;
 use crate::formats::{self};
-use crate::link::Shape;
+use crate::link::{Member, Shape};
 use crate::location::Span;
-use crate::providers::{Place, Provider, Query, normalize};
+use crate::providers::{MemberError, Place, Provider, Query, check_complete_map, normalize};
 use crate::workspace::Workspace;
 
 pub struct Rust;
@@ -21,11 +21,14 @@ impl Provider for Rust {
     }
 
     fn selectors(&self) -> &'static [&'static str] {
-        &["module", "item", "argument", "comment"]
+        &["module", "item", "argument", "comment", "map-variant", "map-field"]
     }
 
-    fn shape(&self, _selector: &str) -> Shape {
-        Shape::LINK
+    fn shape(&self, selector: &str) -> Shape {
+        Shape {
+            map: selector.starts_with("map-"),
+            takes_arguments: true,
+        }
     }
 
     fn query(&self, selector: &str, arguments: &[&str], place: Option<&Place>) -> Result<Box<dyn Query>, String> {
@@ -38,6 +41,14 @@ impl Provider for Rust {
             "item" => match arguments {
                 [path] => RustQuery::Item { path: (*path).to_owned() },
                 _ => return Err(format!("`{selector_name}` takes an item path")),
+            },
+            "map-variant" => match arguments {
+                [path] => RustQuery::MapVariant { path: (*path).to_owned() },
+                _ => return Err(format!("`{selector_name}` takes an enum path")),
+            },
+            "map-field" => match arguments {
+                [path] => RustQuery::MapField { path: (*path).to_owned() },
+                _ => return Err(format!("`{selector_name}` takes a struct or variant path")),
             },
             "comment" => {
                 let (file, text) = match (arguments, place) {
@@ -108,6 +119,23 @@ enum RustQuery {
     /// The comments holding a text; a file left out (`None`) matches every
     /// file, links fill it with the Rust file they are written in.
     Comment { file: Option<PathBuf>, text: String },
+    /// The variants of an enum, by its path, as complete map.
+    MapVariant { path: String },
+    /// The named fields of a struct or variant, by its path, as complete
+    /// map.
+    MapField { path: String },
+}
+
+impl RustQuery {
+    /// The enums, structs or variants a map selector lists the members of,
+    /// each with its members' names.
+    fn map_targets(&self, workspace: &Workspace) -> Vec<(Span, Vec<String>)> {
+        match self {
+            Self::MapVariant { path } => items::find_variants(&workspace.root, path),
+            Self::MapField { path } => items::find_fields(&workspace.root, path),
+            _ => Vec::new(),
+        }
+    }
 }
 
 impl Query for RustQuery {
@@ -121,7 +149,24 @@ impl Query for RustQuery {
                 RustFunction::Enclosing { file, line } => items::find_enclosing_argument(root, file, *line, argument),
             },
             Self::Comment { file, text } => comments::find_comments(workspace, file.as_deref(), text),
+            Self::MapVariant { .. } | Self::MapField { .. } => self.map_targets(workspace).into_iter().map(|(span, _)| span).collect(),
         }
+    }
+
+    /// Members are checked against those of every definition found; a
+    /// target found nowhere has none to check, its link points at nothing.
+    fn check_members(&self, members: &[Member], workspace: &Workspace) -> Vec<MemberError> {
+        let targets = self.map_targets(workspace);
+        if targets.is_empty() {
+            return Vec::new();
+        }
+        let mut expected: Vec<String> = Vec::new();
+        for name in targets.into_iter().flat_map(|(_, names)| names) {
+            if !expected.contains(&name) {
+                expected.push(name);
+            }
+        }
+        check_complete_map(members, &expected)
     }
 }
 
@@ -165,6 +210,21 @@ mod tests {
                 text: "kept sorted".to_owned(),
             },
         );
+    }
+
+    #[test]
+    fn map_selectors_take_a_path_and_a_body() {
+        let (query, members) = read_first_link(
+            "test.md",
+            "<!-- nexus rust.map-field a::Event::Move -->\n- x: across\n<!-- /nexus -->\n",
+        )
+        .unwrap();
+        assert_query(query.as_ref(), &RustQuery::MapField {
+            path: "a::Event::Move".to_owned(),
+        });
+        assert_eq!(members[0].name, "x");
+        assert!(read_first_link("test.md", "[`a::Event`](nexus:rust.map-variant)").is_err());
+        assert!(Rust.query("map-variant", &[], None).is_err());
     }
 
     #[test]

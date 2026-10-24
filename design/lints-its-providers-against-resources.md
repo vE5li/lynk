@@ -39,7 +39,8 @@ declares a function:
 
 The protobuf file describes the same as messages of a service. Its
 comments link to nexus too, in both of protobuf's comment forms, and its
-messages are linked here, one link per way protobuf declares a message:
+messages are linked here, one link per way protobuf declares a message,
+along with the fields of one of them:
 
 <!-- nexus protobuf.* -->
 - message:
@@ -47,14 +48,21 @@ messages are linked here, one link per way protobuf declares a message:
     [`LintRequest`](nexus:protobuf.message (resources/nexus.proto)).
   - Nested in another message:
     [`LintResponse.Problem`](nexus:protobuf.message (resources/nexus.proto)).
+- map-field:
+  <!-- nexus protobuf.map-field resources/nexus.proto Span -->
+  - path: relative to the root
+  - line: counted from 1
+  - column: counted from 1
+  <!-- /nexus -->
 <!-- /nexus -->
 
 The Rust crate is a client of nexus, offering in Rust what the WIT file
 offers as a component. Its comments link to nexus as well, and each of its
 modules is linked here, one link per way Rust declares a module, along
 with some of its items and arguments of its functions, one link per way
-of naming the item or function, and some of its comments, one link per
-way of finding them:
+of naming the item or function, some of its comments, one link per
+way of finding them, and the members of an enum and of a struct and a
+variant declaring fields by name:
 
 <!-- nexus rust.* -->
 - module:
@@ -89,6 +97,21 @@ way of finding them:
     returns](nexus:rust.comment (resources/nexus-client/src/lib.rs)).
   - In the file a link is written in, as the crate's comments link to
     them.
+- map-variant:
+  <!-- nexus rust.map-variant nexus_client::run::Error -->
+  - Start: a variant holding a value
+  - Failed: a variant declaring its fields by name
+  <!-- /nexus -->
+- map-field:
+  - Of a struct:
+    <!-- nexus rust.map-field nexus_client::span::position::Position -->
+    - line: counted from 1
+    - column: counted from 1
+    <!-- /nexus -->
+  - Of a variant, through its enum:
+    <!-- nexus rust.map-field nexus_client::run::Error::Failed -->
+    - stderr: what nexus printed on standard error
+    <!-- /nexus -->
 <!-- /nexus -->
 
 The crate's manifest declares dependencies, and each of them is linked

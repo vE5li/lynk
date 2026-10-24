@@ -122,8 +122,11 @@ writes them, starting with the crate:
 - rust.item: `<item path>`, any item but a module or an import, its attributes and doc comment included; an associated item's path goes through its type or trait, a variant's through its enum
 - rust.argument: `[function path] <argument>`, an argument of a function, `self` for its receiver; a method's path goes through its type or trait
 - rust.comment: `[file] "<text>"`, the comments holding the text, a run of comment lines on consecutive lines being one comment whose lines read as one text; the links in it are left out, so a link never matches its own comment
+- rust.map-variant: `<enum path>`, its variants
+- rust.map-field: `<struct or variant path>`, the fields of a struct or variant declaring them by name; a variant's path goes through its enum
 - wit.function: `<file> <function>`, the functions with that name in its interfaces and worlds; a resource's as `<resource>.<function>`, its constructor as `<resource>.constructor`
 - protobuf.message: `<file> <message>`, from its keyword to its closing brace; a nested message's as `<outer>.<message>`, without the package
+- protobuf.map-field: `<file> <message>`, its fields, those of its `oneof`s included; a nested message's as `<outer>.<message>`
 - cargo.dependency: `<manifest> <dependency>`, the dependencies declared under that key in its package's, platforms' and workspace's tables, from the key or the table's header to the end of its last value
 - nexus.selectors: no arguments; a complete map of these selectors
 - nexus.self: no arguments; the tool itself
@@ -135,10 +138,9 @@ writes them, starting with the crate:
 
 Selectors planned so far:
 
-- `rust.map-variant` / `rust.partial-map-variant
-  <enum>`; `rust.map-field` / `rust.partial-map-field <struct>`.
+- `rust.partial-map-variant <enum>`; `rust.partial-map-field <struct>`.
 - `protobuf.message-field <file> <message> <field>`;
-  `protobuf.map-field` / `protobuf.partial-map-field <file> <message>`;
+  `protobuf.partial-map-field <file> <message>`;
   `protobuf.map-message` / `protobuf.partial-map-message <file>`.
 - `filesystem.partial-map-entry <directory>`.
 
