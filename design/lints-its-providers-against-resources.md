@@ -53,7 +53,8 @@ The Rust crate is a client of nexus, offering in Rust what the WIT file
 offers as a component. Its comments link to nexus as well, and each of its
 modules is linked here, one link per way Rust declares a module, along
 with some of its items and arguments of its functions, one link per way
-of naming the item or function:
+of naming the item or function, and some of its comments, one link per
+way of finding them:
 
 <!-- nexus rust.* -->
 - module:
@@ -82,6 +83,12 @@ of naming the item or function:
       (nexus_client::workspace::Workspace::locate)).
   - Of the function a link is written on, as the crate's comments link
     to them.
+- comment:
+  - A plain comment, by a text spread over its lines:
+    [module is named after what it
+    returns](nexus:rust.comment (resources/nexus-client/src/lib.rs)).
+  - In the file a link is written in, as the crate's comments link to
+    them.
 <!-- /nexus -->
 
 The crate's manifest declares dependencies, and each of them is linked

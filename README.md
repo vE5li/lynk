@@ -106,6 +106,7 @@ command line, quote it from the shell, which would expand it:
 The selectors [nexus](nexus:nexus.self) implements; a link with any other
 selector fails the lint. Arguments left out default to where the link is
 written: without a file, the `markdown` selectors mean the file the link
+is written in, without a file, `rust.comment` means the Rust file the link
 is written in, and without a function, `rust.argument` means the function
 the link is written on, the innermost whose definition, doc comment
 included, holds the link. Rust items are named by their paths as Rust
@@ -120,6 +121,7 @@ writes them, starting with the crate:
 - rust.module: `<module path>`, the crate alone being its root
 - rust.item: `<item path>`, any item but a module or an import, its attributes and doc comment included; an associated item's path goes through its type or trait, a variant's through its enum
 - rust.argument: `[function path] <argument>`, an argument of a function, `self` for its receiver; a method's path goes through its type or trait
+- rust.comment: `[file] "<text>"`, the comments holding the text, a run of comment lines on consecutive lines being one comment whose lines read as one text; the links in it are left out, so a link never matches its own comment
 - wit.function: `<file> <function>`, the functions with that name in its interfaces and worlds; a resource's as `<resource>.<function>`, its constructor as `<resource>.constructor`
 - protobuf.message: `<file> <message>`, from its keyword to its closing brace; a nested message's as `<outer>.<message>`, without the package
 - cargo.dependency: `<manifest> <dependency>`, the dependencies declared under that key in its package's, platforms' and workspace's tables, from the key or the table's header to the end of its last value

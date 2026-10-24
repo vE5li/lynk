@@ -1,6 +1,7 @@
-//! Rust modules, items and the arguments of Rust functions, named by their
-//! paths.
+//! What links point at in Rust source: its items, named by their paths, and
+//! its comments, found by their text.
 
+mod comments;
 mod items;
 
 use std::path::PathBuf;
@@ -9,7 +10,7 @@ use crate::formats::rust::NAME;
 use crate::formats::{self};
 use crate::link::Shape;
 use crate::location::Span;
-use crate::providers::{Place, Provider, Query};
+use crate::providers::{Place, Provider, Query, normalize};
 use crate::workspace::Workspace;
 
 pub struct Rust;
@@ -20,7 +21,7 @@ impl Provider for Rust {
     }
 
     fn selectors(&self) -> &'static [&'static str] {
-        &["module", "item", "argument"]
+        &["module", "item", "argument", "comment"]
     }
 
     fn shape(&self, _selector: &str) -> Shape {
@@ -38,10 +39,25 @@ impl Provider for Rust {
                 [path] => RustQuery::Item { path: (*path).to_owned() },
                 _ => return Err(format!("`{selector_name}` takes an item path")),
             },
+            "comment" => {
+                let (file, text) = match (arguments, place) {
+                    ([file, text], _) => (Some(normalize(file)), text),
+                    ([text], Some(place)) if is_rust(place) => (Some(place.file.to_owned()), text),
+                    ([text], None) => (None, text),
+                    ([_], _) => {
+                        return Err(format!("`{selector_name}` takes a file outside a Rust file"));
+                    }
+                    _ => return Err(format!("`{selector_name}` takes an optional file and a text")),
+                };
+                RustQuery::Comment {
+                    file,
+                    text: (*text).to_owned(),
+                }
+            }
             _ => {
                 let (function, argument) = match (arguments, place) {
                     ([function, argument], _) => (RustFunction::Path((*function).to_owned()), argument),
-                    ([argument], Some(place)) if formats::of(place.file).is_some_and(|format| format.name() == NAME) => (
+                    ([argument], Some(place)) if is_rust(place) => (
                         RustFunction::Enclosing {
                             file: place.file.to_owned(),
                             line: place.line,
@@ -67,6 +83,10 @@ impl Provider for Rust {
     }
 }
 
+fn is_rust(place: &Place) -> bool {
+    formats::of(place.file).is_some_and(|format| format.name() == NAME)
+}
+
 /// A Rust function, by its path as Rust writes it or as the one a link is
 /// written on: the innermost whose definition, doc comment included, holds
 /// the link's first line.
@@ -85,6 +105,9 @@ enum RustQuery {
     Item { path: String },
     /// An argument of a function, by name.
     Argument { function: RustFunction, argument: String },
+    /// The comments holding a text; a file left out (`None`) matches every
+    /// file, links fill it with the Rust file they are written in.
+    Comment { file: Option<PathBuf>, text: String },
 }
 
 impl Query for RustQuery {
@@ -97,6 +120,7 @@ impl Query for RustQuery {
                 RustFunction::Path(path) => items::find_argument(root, path, argument),
                 RustFunction::Enclosing { file, line } => items::find_enclosing_argument(root, file, *line, argument),
             },
+            Self::Comment { file, text } => comments::find_comments(workspace, file.as_deref(), text),
         }
     }
 }
@@ -119,6 +143,28 @@ mod tests {
         });
         assert!(read_first_link("test.md", "[`root`](nexus:rust.argument)").is_err());
         assert!(Rust.query("argument", &["root"], None).is_err());
+    }
+
+    #[test]
+    fn a_comment_without_a_file_is_in_the_rust_file_the_link_is_in() {
+        let (query, _) = read_first_link("src/main.rs", "/// As [kept sorted](nexus:rust.comment).\nfn run() {}\n").unwrap();
+        assert_query(query.as_ref(), &RustQuery::Comment {
+            file: Some(PathBuf::from("src/main.rs")),
+            text: "kept sorted".to_owned(),
+        });
+        assert!(read_first_link("test.md", "[kept sorted](nexus:rust.comment)").is_err());
+        let (query, _) = read_first_link("test.md", "[kept sorted](nexus:rust.comment (./src/main.rs))").unwrap();
+        assert_query(query.as_ref(), &RustQuery::Comment {
+            file: Some(PathBuf::from("src/main.rs")),
+            text: "kept sorted".to_owned(),
+        });
+        assert_query(
+            Rust.query("comment", &["kept sorted"], None).unwrap().as_ref(),
+            &RustQuery::Comment {
+                file: None,
+                text: "kept sorted".to_owned(),
+            },
+        );
     }
 
     #[test]

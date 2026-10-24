@@ -31,6 +31,8 @@ impl Span {
     }
 }
 
+/// The path and start of a span, all of it but what follows
+/// [the last dash](nexus:rust.comment) when it ends elsewhere.
 fn parse_start(text: &str) -> Option<(PathBuf, Position)> {
     let (rest, column) = text.rsplit_once(':')?;
     let (path, line) = rest.rsplit_once(':')?;

@@ -3,8 +3,8 @@
 ## Decision
 
 A selector may leave out the arguments naming what holds its target when
-the link is written inside it: a Markdown file for a section, a Rust
-function for one of its arguments (the README's
+the link is written inside it: a Markdown file for a section, a Rust file
+for a comment, a Rust function for one of its arguments (the README's
 [Selectors](nexus:markdown.section (README.md))). The link's
 file and first line are all a selector gets to decide
 ([`nexus::providers::Place`](nexus:rust.item)); a Rust function holds a
