@@ -6,7 +6,7 @@ use std::path::{Path, PathBuf};
 
 use syn::spanned::Spanned;
 use syn::visit::Visit;
-use syn::{FnArg, ImplItem, Item, ItemMod, Pat, Signature, TraitItem, Type};
+use syn::{FnArg, ForeignItem, Ident, ImplItem, Item, ItemMod, Pat, Signature, TraitItem, Type};
 
 use crate::location::{Position, Span};
 
@@ -68,6 +68,116 @@ fn module_at(root: &Path, segments: &[&str]) -> Option<ModuleContext> {
         context = child_module(root, &context, &declaration)?;
     }
     Some(context)
+}
+
+/// The spans of the items at a path written as in Rust, modules and
+/// imports aside: a module's item as `<module path>::<item>`, an associated
+/// item as `<module path>::<type or trait>::<item>`, which every `impl` of
+/// the type may define, and a variant as `<module path>::<enum>::<variant>`.
+pub fn find_item(root: &Path, path: &str) -> Vec<Span> {
+    let segments: Vec<&str> = path.split("::").collect();
+    let mut spans = Vec::new();
+    if let Some((name, module_path)) = segments.split_last()
+        && let Some(module) = module_at(root, module_path)
+    {
+        let file = relative(root, &module.file);
+        for item in &module.items {
+            if let Item::ForeignMod(block) = item {
+                spans.extend(
+                    block
+                        .items
+                        .iter()
+                        .filter(|item| foreign_item_name(item).is_some_and(|ident| ident == name))
+                        .map(|item| item_span(file.clone(), item)),
+                );
+            } else if module_item_name(item).is_some_and(|ident| ident == name) {
+                spans.push(item_span(file.clone(), item));
+            }
+        }
+    }
+    if let [module_path @ .., owner, name] = segments.as_slice()
+        && let Some(module) = module_at(root, module_path)
+    {
+        let file = relative(root, &module.file);
+        for item in &module.items {
+            match item {
+                Item::Impl(implementation) if type_name(&implementation.self_ty).is_some_and(|ty| ty == *owner) => {
+                    spans.extend(
+                        implementation
+                            .items
+                            .iter()
+                            .filter(|item| impl_item_name(item).is_some_and(|ident| ident == name))
+                            .map(|item| item_span(file.clone(), item)),
+                    );
+                }
+                Item::Trait(declaration) if declaration.ident == owner => {
+                    spans.extend(
+                        declaration
+                            .items
+                            .iter()
+                            .filter(|item| trait_item_name(item).is_some_and(|ident| ident == name))
+                            .map(|item| item_span(file.clone(), item)),
+                    );
+                }
+                Item::Enum(declaration) if declaration.ident == owner => {
+                    spans.extend(
+                        declaration
+                            .variants
+                            .iter()
+                            .filter(|variant| variant.ident == name)
+                            .map(|variant| item_span(file.clone(), variant)),
+                    );
+                }
+                _ => {}
+            }
+        }
+    }
+    spans
+}
+
+/// The name a module's item is reached by, `None` for modules, imports,
+/// `impl` blocks and unnamed items.
+fn module_item_name(item: &Item) -> Option<&Ident> {
+    match item {
+        Item::Const(item) => Some(&item.ident),
+        Item::Enum(item) => Some(&item.ident),
+        Item::Fn(item) => Some(&item.sig.ident),
+        Item::Macro(item) => item.ident.as_ref(),
+        Item::Static(item) => Some(&item.ident),
+        Item::Struct(item) => Some(&item.ident),
+        Item::Trait(item) => Some(&item.ident),
+        Item::TraitAlias(item) => Some(&item.ident),
+        Item::Type(item) => Some(&item.ident),
+        Item::Union(item) => Some(&item.ident),
+        _ => None,
+    }
+}
+
+fn foreign_item_name(item: &ForeignItem) -> Option<&Ident> {
+    match item {
+        ForeignItem::Fn(item) => Some(&item.sig.ident),
+        ForeignItem::Static(item) => Some(&item.ident),
+        ForeignItem::Type(item) => Some(&item.ident),
+        _ => None,
+    }
+}
+
+fn impl_item_name(item: &ImplItem) -> Option<&Ident> {
+    match item {
+        ImplItem::Const(item) => Some(&item.ident),
+        ImplItem::Fn(item) => Some(&item.sig.ident),
+        ImplItem::Type(item) => Some(&item.ident),
+        _ => None,
+    }
+}
+
+fn trait_item_name(item: &TraitItem) -> Option<&Ident> {
+    match item {
+        TraitItem::Const(item) => Some(&item.ident),
+        TraitItem::Fn(item) => Some(&item.sig.ident),
+        TraitItem::Type(item) => Some(&item.ident),
+        _ => None,
+    }
 }
 
 /// The spans of an argument of the functions at a path written as in Rust:
@@ -297,6 +407,16 @@ mod tests {
                     "pub trait Shape {\n",
                     "    fn area(&self, scale: f64) -> f64;\n",
                     "}\n",
+                    "pub enum Mode {\n",
+                    "    Fast,\n",
+                    "}\n",
+                    "const LIMIT: usize = 3;\n",
+                    "macro_rules! shout {\n",
+                    "    () => {};\n",
+                    "}\n",
+                    "unsafe extern \"C\" {\n",
+                    "    fn abs(value: i32) -> i32;\n",
+                    "}\n",
                 ),
             ),
             ("src/elsewhere/moved.rs", ""),
@@ -347,6 +467,30 @@ mod tests {
         );
         assert_eq!(module_path(&root, "an_example::missing"), None);
         assert_eq!(module_path(&root, "an-example::file"), None);
+        std::fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn finds_items_by_path() {
+        let root = temporary_package("items");
+        let item = |path| spans(find_item(&root, path));
+        assert_eq!(item("an_example::directory::run"), vec!["src/directory/mod.rs:1:1-5:1"]);
+        assert_eq!(item("an_example::directory::Tool"), vec!["src/directory/mod.rs:6:1-6:16"]);
+        assert_eq!(item("an_example::directory::Tool::apply"), vec![
+            "src/directory/mod.rs:8:5-9:39"
+        ]);
+        assert_eq!(item("an_example::directory::Shape::area"), vec![
+            "src/directory/mod.rs:12:5-12:38"
+        ]);
+        assert_eq!(item("an_example::directory::Mode::Fast"), vec!["src/directory/mod.rs:15:5-15:8"]);
+        assert_eq!(item("an_example::directory::LIMIT"), vec!["src/directory/mod.rs:17:1-17:23"]);
+        assert_eq!(item("an_example::directory::shout"), vec!["src/directory/mod.rs:18:1-20:1"]);
+        assert_eq!(item("an_example::directory::abs"), vec!["src/directory/mod.rs:22:5-22:30"]);
+        // Modules have a selector of their own; inner functions no path.
+        assert!(item("an_example::file").is_empty());
+        assert!(item("an_example::directory::run::inner").is_empty());
+        assert!(item("an_example::directory::missing").is_empty());
+        assert!(item("an_example").is_empty());
         std::fs::remove_dir_all(root).unwrap();
     }
 

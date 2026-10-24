@@ -1,4 +1,5 @@
-//! Rust modules and the arguments of Rust functions, named by their paths.
+//! Rust modules, items and the arguments of Rust functions, named by their
+//! paths.
 
 mod items;
 
@@ -19,7 +20,7 @@ impl Provider for Rust {
     }
 
     fn selectors(&self) -> &'static [&'static str] {
-        &["module", "argument"]
+        &["module", "item", "argument"]
     }
 
     fn shape(&self, _selector: &str) -> Shape {
@@ -32,6 +33,10 @@ impl Provider for Rust {
             "module" => match arguments {
                 [path] => RustQuery::Module { path: (*path).to_owned() },
                 _ => return Err(format!("`{selector_name}` takes a module path")),
+            },
+            "item" => match arguments {
+                [path] => RustQuery::Item { path: (*path).to_owned() },
+                _ => return Err(format!("`{selector_name}` takes an item path")),
             },
             _ => {
                 let (function, argument) = match (arguments, place) {
@@ -73,6 +78,9 @@ enum RustFunction {
 enum RustQuery {
     /// A module, by its path as Rust writes it, starting with the crate.
     Module { path: String },
+    /// Any other item, by its path as Rust writes it, starting with the
+    /// crate.
+    Item { path: String },
     /// An argument of a function, by name.
     Argument { function: RustFunction, argument: String },
 }
@@ -82,6 +90,7 @@ impl Query for RustQuery {
         let root = &workspace.root;
         match self {
             Self::Module { path } => items::find_module(root, path).into_iter().collect(),
+            Self::Item { path } => items::find_item(root, path),
             Self::Argument { function, argument } => match function {
                 RustFunction::Path(path) => items::find_argument(root, path, argument),
                 RustFunction::Enclosing { file, line } => items::find_enclosing_argument(root, file, *line, argument),

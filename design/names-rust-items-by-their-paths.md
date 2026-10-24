@@ -2,13 +2,14 @@
 
 ## Decision
 
-The `rust` selectors of [nexus](nexus:nexus.self) name modules and
-functions by their paths as Rust writes them, starting with the crate's
+The `rust` selectors of [nexus](nexus:nexus.self) name modules,
+items and functions by their paths as Rust writes them, starting with the crate's
 name as code using it writes it ([`nexus::providers::rust`](nexus:rust.module)): its
 library's name when the
 manifest gives one, otherwise its package's with dashes turned into
-underscores. A method's path goes through its type or trait, as calling
-it by its full path does.
+underscores. A method's or other associated item's path goes through its
+type or trait, and a variant's through its enum, as using it by its full
+path does.
 
 ## Why
 

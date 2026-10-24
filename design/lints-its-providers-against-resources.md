@@ -38,7 +38,8 @@ declares a function:
 The Rust crate is a client of nexus, offering in Rust what the WIT file
 offers as a component. Its comments link to nexus as well, and each of its
 modules is linked here, one link per way Rust declares a module, along
-with arguments of its functions, one link per way of naming the function:
+with some of its items and arguments of its functions, one link per way
+of naming the item or function:
 
 <!-- nexus rust.* -->
 - module:
@@ -52,6 +53,13 @@ with arguments of its functions, one link per way of naming the function:
     [`nexus_client::problem`](nexus:rust.module).
   - Inline, in its parent's file:
     [`nexus_client::workspace`](nexus:rust.module).
+- item:
+  - In a module:
+    [`nexus_client::span::Span`](nexus:rust.item).
+  - Of a module declared at a path given by a `#[path]` attribute:
+    [`nexus_client::problem::Problem`](nexus:rust.item).
+  - A method, through its type:
+    [`nexus_client::workspace::Workspace::lint`](nexus:rust.item).
 - argument:
   - Of a function in a module:
     [`root`](nexus:rust.argument (nexus_client::run::nexus)).
