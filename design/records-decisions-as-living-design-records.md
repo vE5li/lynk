@@ -13,7 +13,9 @@ A record links to every part of the code it talks about, as precisely as
 the selectors allow: the functions, modules and files that carry out the
 decision, rather than only the directory they live in. The aim is to tie
 the record so tightly to the code that changing either without the other
-fails the lint. When no selector reaches what a record needs to name, the
+fails the lint. A record choosing a dependency links to where the
+manifest declares it, so replacing or dropping the dependency fails the
+lint as well. When no selector reaches what a record needs to name, the
 record links to the nearest thing one does reach.
 
 Records are not append-only. When a decision changes, its record is

@@ -5,10 +5,12 @@
 [nexus](nexus:nexus.self) knows a language through two roles, each a
 trait with its own list, in a module of its own:
 
-- A *format* ([`nexus::formats`](nexus:rust.module)) reads the files links
+- A *format* ([`nexus::formats::Format`](nexus:rust.item), listed in
+  [`nexus::formats::FORMATS`](nexus:rust.item)) reads the files links
   are written in: what of them is prose, what is code, what
   [`nexus find`](nexus:nexus.find) searches, and the links themselves.
-- A *provider* ([`nexus::providers`](nexus:rust.module)) names the targets
+- A *provider* ([`nexus::providers::Provider`](nexus:rust.item), listed
+  in [`nexus::providers::PROVIDERS`](nexus:rust.item)) names the targets
   links point at: its selectors, how each reads its arguments, what it
   resolves to and how it checks a map's body.
 
@@ -19,13 +21,15 @@ have in common by calling each other: a format whose comments are
 Markdown finds them itself, as only it knows its language's tokens, and
 reads them with the Markdown format's reader of comments
 ([`nexus::formats::markdown::comments`](nexus:rust.module)). A
-provider may ask which format a file has, but no format depends on a
+provider may ask which format a file has
+([`nexus::formats::of`](nexus:rust.item)), but no format depends on a
 provider. What is common to every link, its selector name, arguments and
 body, and how a selector reads them, belongs to neither role
 ([`nexus::link`](nexus:rust.module)).
 
 For now the lists hold trait objects, a provider matches its selectors by
-name, and each query is a type of its provider's own; this is the
+name, and each query is a type of its provider's own
+([`nexus::providers::Query`](nexus:rust.item)); this is the
 simplest form, not a settled one.
 
 ## Why
@@ -37,7 +41,9 @@ adding a submodule per role and listing it. The roles are split because
 they do not always come together: the filesystem and nexus itself are
 targets without files of their own to read, and a language may be read
 before anything in it can be linked. The two halves of a language share
-next to no code, Rust's format being its lexer and its provider `syn`, so
+next to no code, Rust's format being its lexer
+([`ra-ap-rustc_lexer`](nexus:cargo.dependency (Cargo.toml))) and its
+provider [`syn`](nexus:cargo.dependency (Cargo.toml)), so
 grouping by role keeps each trait next to everything implementing it,
 and keeps the one direction they depend on each other in plain sight.
 

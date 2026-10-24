@@ -4,10 +4,12 @@
 
 [nexus](nexus:nexus.self) reads the links in every comment of a Rust file,
 plain and doc comments alike, and nothing else of it. It finds them with
-`ra-ap-rustc_lexer`, rustc's own lexer as published for rust-analyzer
-([`nexus::formats::rust`](nexus:rust.module)). The lines of the comments
-are then read by the Markdown format, as every format's comments are
-([`nexus::formats::markdown::comments`](nexus:rust.module)): each run of
+[`ra-ap-rustc_lexer`](nexus:cargo.dependency (Cargo.toml)), rustc's own
+lexer as published for rust-analyzer
+([`nexus::formats::rust::comment_lines`](nexus:rust.item)). The lines of
+the comments are then read by the Markdown format, as every format's
+comments are
+([`nexus::formats::markdown::comments::read`](nexus:rust.item)): each run of
 comment lines on consecutive lines is read as Markdown, so links are
 Markdown links, inline code and code blocks hold examples, as in Markdown
 files, and each run is one of the units [`nexus find`](nexus:nexus.find)
@@ -30,7 +32,9 @@ are told apart as the compiler does.
 
 ## Alternatives
 
-- **syn or proc-macro2**, already used to find modules
+- **[`syn`](nexus:cargo.dependency (Cargo.toml)) or
+  [`proc-macro2`](nexus:cargo.dependency (Cargo.toml))**, already used to
+  find modules and items
   ([Decision](nexus:markdown.section (design/reads-rust-with-syn.md))): no
   new dependency, but both drop plain comments and keep only doc comments,
   as attributes, so links in plain comments would go unchecked.

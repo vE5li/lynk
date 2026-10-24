@@ -2,12 +2,15 @@
 
 ## Decision
 
-[`nexus find`](nexus:nexus.find) picks the best word matches, then asks
+[`nexus find`](nexus:nexus.find) picks the best word matches
+([`nexus::relevance::SHORTLIST_LENGTH`](nexus:rust.item)), then asks
 TypeSafe's model, in one request, whether each of them is relevant to the
-task, and orders them by that probability
-([`nexus::relevance`](nexus:rust.module)). It does so only when
-`TYPESAFE_API_KEY` is set, and keeps the word ranking when it is not or the
-request fails.
+task ([`nexus::relevance::relevance`](nexus:rust.item)), and orders them
+by that probability ([`nexus::relevance::re_rank`](nexus:rust.item)). It
+does so only when its key's variable is set
+([`nexus::relevance::API_KEY_VARIABLE`](nexus:rust.item)), and keeps the
+word ranking when it is not or the request fails. The request is made with
+[`ureq`](nexus:cargo.dependency (Cargo.toml)).
 
 ## Why
 

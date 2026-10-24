@@ -3,14 +3,21 @@
 ## Decision
 
 The `wit` provider of [nexus](nexus:nexus.self) parses WIT files with
-`wit-parser` ([`nexus::providers::wit`](nexus:rust.module)), the parser of the Bytecode Alliance's
-`wasm-tools`, without its default features. A file is parsed together with
-the other WIT files of its directory, as they may form one package, or
-alone if they do not parse; dependencies are not resolved. A function is
-found by the span of its name.
+[`wit-parser`](nexus:cargo.dependency (Cargo.toml))
+([`nexus::providers::wit`](nexus:rust.module)), the parser of the
+Bytecode Alliance's `wasm-tools`, without its default features. A file is
+parsed together with the other WIT files of its directory, as they may
+form one package, or alone if they do not parse; dependencies are not
+resolved ([`nexus::providers::wit::parse_package`](nexus:rust.item)). A
+function is found by the span of its name
+([`nexus::providers::wit::find_function`](nexus:rust.item)), a resource's
+named after it
+([`nexus::providers::wit::link_name`](nexus:rust.item)).
 
 The links in a WIT file's comments, plain and doc comments alike, are read
-with the reader of Rust comments, not with `wit-parser`, as its
+with the reader of Rust comments
+([`nexus::formats::rust::read`](nexus:rust.item)), not with `wit-parser`,
+as its
 [Decision](nexus:markdown.section
   (design/reads-rust-comments-with-rustc-lexer.md)) describes.
 

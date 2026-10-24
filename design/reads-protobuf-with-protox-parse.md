@@ -3,21 +3,27 @@
 ## Decision
 
 The `protobuf` provider of [nexus](nexus:nexus.self) parses protobuf files
-with `protox-parse` ([`nexus::providers::protobuf`](nexus:rust.module)),
-the parser of `protox`, one file at a time, without resolving imports or
-type names. A message is found through the source code info the parser
-fills in, by the location of its declaration, from its keyword to its
-closing brace. A nested message is named after the messages it is nested
-in, joined with dots as protobuf writes it, but without the package: the
-file already scopes it.
+with [`protox-parse`](nexus:cargo.dependency (Cargo.toml))
+([`nexus::providers::protobuf`](nexus:rust.module)), the parser of
+`protox`, one file at a time, without resolving imports or type names. A
+message is found through the source code info the parser fills in, by the
+location of its declaration, from its keyword to its closing brace
+([`nexus::providers::protobuf::find_message`](nexus:rust.item)), its
+lines and columns turned into bytes
+([`nexus::providers::protobuf::byte_range`](nexus:rust.item)). A nested
+message, like
+[`LintResponse.Problem`](nexus:protobuf.message (resources/nexus.proto)),
+is named after the messages it is nested in, joined with dots as protobuf
+writes it, but without the package: the file already scopes it
+([`nexus::providers::protobuf::collect_messages`](nexus:rust.item)).
 
 The links in a protobuf file's comments are found by a scanner of the
-protobuf format's own ([`nexus::formats::protobuf`](nexus:rust.module)),
-following protobuf's tokenizer: `//` comments up to the end of the line,
+protobuf format's own
+([`nexus::formats::protobuf::comment_lines`](nexus:rust.item)), following protobuf's tokenizer: `//` comments up to the end of the line,
 `/* */` comments up to the first `*/`, without nesting, and neither inside
 a string, quoted with `"` or `'`. The lines it finds are read as Markdown,
 as every format's comments are
-([`nexus::formats::markdown::comments`](nexus:rust.module)).
+([`nexus::formats::markdown::comments::read`](nexus:rust.item)).
 
 ## Why
 
@@ -25,7 +31,7 @@ as every format's comments are
 protobuf file must not need `protoc` installed or its imports found.
 `protox-parse` is written in Rust, parses a single file's syntax on its
 own, and records the span of every declaration in the descriptor's source
-code info, as `protoc` does, so the parser settles what is a message and
+code info, typed by [`prost-types`](nexus:cargo.dependency (Cargo.toml)), as `protoc` does, so the parser settles what is a message and
 where it ends.
 
 Comments need their exact positions, so links in them can be reported and

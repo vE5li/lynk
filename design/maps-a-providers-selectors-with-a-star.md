@@ -4,8 +4,11 @@
 
 Any provider of [nexus](nexus:nexus.self) can be linked as `<provider>.*`,
 a complete map of its selectors (the README's
-[Link syntax](nexus:markdown.section (README.md))). It is
-syntax rather than a selector: it is not listed among the selectors, and
+[Link syntax](nexus:markdown.section (README.md))), checked as every
+complete map is
+([`nexus::providers::check_complete_map`](nexus:rust.item)). It is
+syntax rather than a selector
+([`nexus::providers::EVERY_SELECTOR`](nexus:rust.item)): it is not listed among the selectors, and
 it asks nothing of its descriptions. Text exercising or describing every
 selector of a provider, like
 [`design/lints-its-providers-against-resources.md`](nexus:filesystem.file),
