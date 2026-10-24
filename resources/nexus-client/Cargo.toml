@@ -2,3 +2,17 @@
 name = "nexus-client"
 version = "0.1.0"
 edition = "2024"
+
+[workspace]
+[workspace.dependencies]
+serde = "1"
+
+[dependencies]
+serde_json = { version = "1", default-features = false, features = ["std"] }
+shlex.version = "1"
+
+[dev-dependencies.tempfile]
+version = "3"
+
+[target."cfg(unix)".dependencies]
+libc = "0.2"

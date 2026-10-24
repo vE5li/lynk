@@ -290,7 +290,9 @@ fn argument_span(file: &Path, signature: &Signature, name: &str) -> Option<Span>
         .iter()
         .find(|argument| match argument {
             FnArg::Receiver(_) => name == "self",
-            FnArg::Typed(typed) => matches!(&*typed.pat, Pat::Ident(pattern) if pattern.ident == name),
+            FnArg::Typed(typed) => {
+                matches!(&*typed.pat, Pat::Ident(pattern) if pattern.ident == name)
+            }
         })
         .map(|argument| item_span(file.to_owned(), argument))
 }

@@ -94,7 +94,9 @@ impl Link {
         let members = match (shape.map, &self.body) {
             (true, Some(body)) => members(prose, body.clone(), &self.nested)?,
             (false, None) => Vec::new(),
-            (true, None) => return Err(error(format!("`{name}` is a map, so it is written with a body"))),
+            (true, None) => {
+                return Err(error(format!("`{name}` is a map, so it is written with a body")));
+            }
             (false, Some(_)) => return Err(error(format!("`{name}` takes no body"))),
         };
         let mut arguments = arguments(&self.arguments, self.range.start)?;

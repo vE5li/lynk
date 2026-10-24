@@ -53,7 +53,9 @@ impl Provider for Rust {
                             "`{selector_name}` takes a function path outside the Rust function it is written on"
                         ));
                     }
-                    _ => return Err(format!("`{selector_name}` takes an optional function path and an argument")),
+                    _ => {
+                        return Err(format!("`{selector_name}` takes an optional function path and an argument"));
+                    }
                 };
                 RustQuery::Argument {
                     function,

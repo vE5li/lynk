@@ -13,6 +13,7 @@ against real files:
 - nexus.wit: WIT describing nexus as a component
 - nexus.proto: protobuf describing nexus as a service
 - nexus-client: a Rust crate running nexus's command line, with its README
+  and its manifest
 <!-- /nexus -->
 
 The WIT file describes nexus itself as a component. Its comments link to
@@ -81,6 +82,25 @@ of naming the item or function:
       (nexus_client::workspace::Workspace::locate)).
   - Of the function a link is written on, as the crate's comments link
     to them.
+<!-- /nexus -->
+
+The crate's manifest declares dependencies, and each of them is linked
+here, one link per way Cargo declares a dependency:
+
+<!-- nexus cargo.* -->
+- dependency:
+  - In the workspace's table:
+    [`serde`](nexus:cargo.dependency (resources/nexus-client/Cargo.toml)).
+  - With an inline table:
+    [`serde_json`](nexus:cargo.dependency
+      (resources/nexus-client/Cargo.toml)).
+  - With dotted keys:
+    [`shlex`](nexus:cargo.dependency (resources/nexus-client/Cargo.toml)).
+  - With a version alone, in a platform's table:
+    [`libc`](nexus:cargo.dependency (resources/nexus-client/Cargo.toml)).
+  - Under a header of its own, among the dependencies of its tests:
+    [`tempfile`](nexus:cargo.dependency
+      (resources/nexus-client/Cargo.toml)).
 <!-- /nexus -->
 
 The crate's README is Markdown written as any repository may write it,

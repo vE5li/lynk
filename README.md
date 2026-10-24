@@ -122,6 +122,7 @@ writes them, starting with the crate:
 - rust.argument: `[function path] <argument>`, an argument of a function, `self` for its receiver; a method's path goes through its type or trait
 - wit.function: `<file> <function>`, the functions with that name in its interfaces and worlds; a resource's as `<resource>.<function>`, its constructor as `<resource>.constructor`
 - protobuf.message: `<file> <message>`, from its keyword to its closing brace; a nested message's as `<outer>.<message>`, without the package
+- cargo.dependency: `<manifest> <dependency>`, the dependencies declared under that key in its package's, platforms' and workspace's tables, from the key or the table's header to the end of its last value
 - nexus.selectors: no arguments; a complete map of these selectors
 - nexus.self: no arguments; the tool itself
 - nexus.lint: no arguments; its command checking every link

@@ -9,6 +9,7 @@ use crate::document::Document;
 use crate::link::{Argument, Link, Member, Shape, SyntaxError};
 use crate::location::Span;
 use crate::workspace::Workspace;
+mod cargo;
 mod filesystem;
 mod markdown;
 pub mod nexus;
@@ -44,6 +45,7 @@ pub const PROVIDERS: &[&dyn Provider] = &[
     &rust::Rust,
     &wit::Wit,
     &protobuf::Protobuf,
+    &cargo::Cargo,
     &nexus::Nexus,
 ];
 

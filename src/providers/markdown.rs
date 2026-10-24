@@ -40,7 +40,9 @@ impl Provider for Markdown {
         let (file, name) = match arguments {
             [name] => (place.map(|place| place.file.to_owned()), (*name).to_owned()),
             [file, name] => (Some(normalize(file)), (*name).to_owned()),
-            _ => return Err(format!("`{NAME}.{selector}` takes an optional file and a name")),
+            _ => {
+                return Err(format!("`{NAME}.{selector}` takes an optional file and a name"));
+            }
         };
         Ok(Box::new(match selector {
             "section" => MarkdownQuery::Section { file, heading: name },
