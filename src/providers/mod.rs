@@ -37,6 +37,11 @@ pub trait Query: Debug {
     fn check_members(&self, _members: &[Member], _workspace: &Workspace) -> Vec<MemberError> {
         Vec::new()
     }
+    /// Checks what a link states about its target besides where it is, such
+    /// as its value; each problem concerns the whole link.
+    fn check_target(&self, _workspace: &Workspace) -> Vec<String> {
+        Vec::new()
+    }
 }
 
 pub const PROVIDERS: &[&dyn Provider] = &[

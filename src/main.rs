@@ -81,6 +81,10 @@ fn lint(workspace: &Workspace) -> ExitCode {
                     .map_or(location.clone(), |range| document.span(range.start..range.start));
                 println!("{member_location}: {}", member_error.message);
             }
+            for message in query.check_target(workspace) {
+                error_count += 1;
+                println!("{location}: {message}");
+            }
             let targets = query.resolve(workspace);
             match targets.len() {
                 1 => {}

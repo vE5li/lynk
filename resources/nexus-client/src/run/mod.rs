@@ -5,6 +5,9 @@ use std::fmt;
 use std::path::Path;
 use std::process::Command;
 
+/// The program run, looked up on the `PATH`.
+const PROGRAM: &str = "nexus";
+
 /// Why a command gave nothing to read.
 #[derive(Debug)]
 pub enum Error {
@@ -53,7 +56,7 @@ impl Output {
 /// Runs `nexus` with [`arguments`](nexus:rust.argument) on the repository at
 /// [`root`](nexus:rust.argument).
 pub fn nexus(root: &Path, arguments: &[&str]) -> Result<Output, Error> {
-    let output = Command::new("nexus")
+    let output = Command::new(PROGRAM)
         .arg("--root")
         .arg(root)
         .args(arguments)

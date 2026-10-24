@@ -8,6 +8,9 @@ pub struct Position {
 }
 
 impl Position {
+    /// What the first line and the first column count as.
+    pub const FIRST: u32 = 1;
+
     /// Reads `line:column`.
     pub fn parse(text: &str) -> Option<Self> {
         let (line, column) = text.split_once(':')?;

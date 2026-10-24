@@ -6,7 +6,7 @@ use std::path::{Path, PathBuf};
 
 use syn::spanned::Spanned;
 use syn::visit::Visit;
-use syn::{Fields, FnArg, ForeignItem, Ident, ImplItem, Item, ItemMod, Pat, Signature, TraitItem, Type};
+use syn::{Expr, Fields, FnArg, ForeignItem, Ident, ImplItem, Item, ItemMod, Pat, Signature, TraitItem, Type};
 
 use crate::location::{Position, Span};
 
@@ -133,6 +133,55 @@ pub fn find_item(root: &Path, path: &str) -> Vec<Span> {
         }
     }
     spans
+}
+
+/// The constants and statics at a path written as in Rust, a module's as
+/// `<module path>::<item>` and an associated constant as
+/// `<module path>::<type or trait>::<item>`, each with the expression giving
+/// its value. A trait's constant without a default and a foreign static have
+/// no value and are left out.
+pub fn find_values(root: &Path, path: &str) -> Vec<(Span, Expr)> {
+    let segments: Vec<&str> = path.split("::").collect();
+    let mut found = Vec::new();
+    if let Some((name, module_path)) = segments.split_last()
+        && let Some(module) = module_at(root, module_path)
+    {
+        let file = relative(root, &module.file);
+        for item in &module.items {
+            let value = match item {
+                Item::Const(constant) if constant.ident == name => &constant.expr,
+                Item::Static(statik) if statik.ident == name => &statik.expr,
+                _ => continue,
+            };
+            found.push((item_span(file.clone(), item), (**value).clone()));
+        }
+    }
+    if let [module_path @ .., owner, name] = segments.as_slice()
+        && let Some(module) = module_at(root, module_path)
+    {
+        let file = relative(root, &module.file);
+        for item in &module.items {
+            match item {
+                Item::Impl(implementation) if type_name(&implementation.self_ty).is_some_and(|ty| ty == *owner) => {
+                    found.extend(implementation.items.iter().filter_map(|item| match item {
+                        ImplItem::Const(constant) if constant.ident == name => Some((item_span(file.clone(), item), constant.expr.clone())),
+                        _ => None,
+                    }));
+                }
+                Item::Trait(declaration) if declaration.ident == owner => {
+                    found.extend(declaration.items.iter().filter_map(|item| match item {
+                        TraitItem::Const(constant) if constant.ident == name => {
+                            let (_, value) = constant.default.as_ref()?;
+                            Some((item_span(file.clone(), item), value.clone()))
+                        }
+                        _ => None,
+                    }));
+                }
+                _ => {}
+            }
+        }
+    }
+    found
 }
 
 /// The enums at a path written as in Rust, `<module path>::<enum>`, each
@@ -458,6 +507,7 @@ fn item_span(path: PathBuf, item: &impl Spanned) -> Span {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::providers::rust::literals::Literal;
 
     /// A package on disk, named with a dash: `lib.rs` declaring a file
     /// module, a directory module, a module behind `#[path]` and an inline
@@ -506,6 +556,14 @@ mod tests {
                     "    Quit,\n",
                     "    Key(char),\n",
                     "    Move { x: i32, y: i32 },\n",
+                    "}\n",
+                    "impl Tool {\n",
+                    "    const SIZE: u8 = 0x10;\n",
+                    "}\n",
+                    "static NAME: &str = \"tool\";\n",
+                    "pub trait Named {\n",
+                    "    const NAME: &'static str = \"named\";\n",
+                    "    const KIND: u8;\n",
                     "}\n",
                 ),
             ),
@@ -618,6 +676,37 @@ mod tests {
         assert_eq!(argument(4, "value"), vec!["src/directory/mod.rs:4:14-4:22"]);
         assert_eq!(argument(8, "input"), vec!["src/directory/mod.rs:9:25-9:35"]);
         assert!(argument(6, "count").is_empty());
+        std::fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn finds_the_values_of_constants_and_statics_by_path() {
+        let root = temporary_package("values");
+        let values = |path| -> Vec<(String, String)> {
+            find_values(&root, path)
+                .into_iter()
+                .map(|(span, value)| (span.to_string(), Literal::of_expression(&value).unwrap().to_string()))
+                .collect()
+        };
+        assert_eq!(values("an_example::directory::LIMIT"), vec![(
+            "src/directory/mod.rs:17:1-17:23".to_owned(),
+            "3".to_owned()
+        )]);
+        assert_eq!(values("an_example::directory::Tool::SIZE"), vec![(
+            "src/directory/mod.rs:35:5-35:26".to_owned(),
+            "16".to_owned()
+        )]);
+        assert_eq!(values("an_example::directory::NAME"), vec![(
+            "src/directory/mod.rs:37:1-37:27".to_owned(),
+            "tool".to_owned()
+        )]);
+        assert_eq!(values("an_example::directory::Named::NAME"), vec![(
+            "src/directory/mod.rs:39:5-39:39".to_owned(),
+            "named".to_owned()
+        )]);
+        assert!(values("an_example::directory::Named::KIND").is_empty());
+        assert!(values("an_example::directory::run").is_empty());
+        assert!(values("an_example::directory::missing").is_empty());
         std::fs::remove_dir_all(root).unwrap();
     }
 

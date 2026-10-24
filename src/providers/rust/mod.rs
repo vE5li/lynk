@@ -1,8 +1,10 @@
 //! What links point at in Rust source: its items, named by their paths, the
-//! members of its enums and structs, and its comments, found by their text.
+//! members of its enums and structs, the values of its constants, and its
+//! comments, found by their text.
 
 mod comments;
 mod items;
+mod literals;
 
 use std::path::PathBuf;
 
@@ -10,6 +12,7 @@ use crate::formats::rust::NAME;
 use crate::formats::{self};
 use crate::link::{Member, Shape};
 use crate::location::Span;
+use crate::providers::rust::literals::Literal;
 use crate::providers::{MemberError, Place, Provider, Query, check_complete_map, normalize};
 use crate::workspace::Workspace;
 
@@ -21,7 +24,7 @@ impl Provider for Rust {
     }
 
     fn selectors(&self) -> &'static [&'static str] {
-        &["module", "item", "argument", "comment", "map-variant", "map-field"]
+        &["module", "item", "literal", "argument", "comment", "map-variant", "map-field"]
     }
 
     fn shape(&self, selector: &str) -> Shape {
@@ -41,6 +44,13 @@ impl Provider for Rust {
             "item" => match arguments {
                 [path] => RustQuery::Item { path: (*path).to_owned() },
                 _ => return Err(format!("`{selector_name}` takes an item path")),
+            },
+            "literal" => match arguments {
+                [path, value] => RustQuery::Literal {
+                    path: (*path).to_owned(),
+                    value: (*value).to_owned(),
+                },
+                _ => return Err(format!("`{selector_name}` takes an item path and a value")),
             },
             "map-variant" => match arguments {
                 [path] => RustQuery::MapVariant { path: (*path).to_owned() },
@@ -114,6 +124,9 @@ enum RustQuery {
     /// Any other item, by its path as Rust writes it, starting with the
     /// crate.
     Item { path: String },
+    /// A constant or static, by its path, whose value is a literal stating
+    /// a value.
+    Literal { path: String, value: String },
     /// An argument of a function, by name.
     Argument { function: RustFunction, argument: String },
     /// The comments holding a text; a file left out (`None`) matches every
@@ -144,6 +157,7 @@ impl Query for RustQuery {
         match self {
             Self::Module { path } => items::find_module(root, path).into_iter().collect(),
             Self::Item { path } => items::find_item(root, path),
+            Self::Literal { path, .. } => items::find_values(root, path).into_iter().map(|(span, _)| span).collect(),
             Self::Argument { function, argument } => match function {
                 RustFunction::Path(path) => items::find_argument(root, path, argument),
                 RustFunction::Enclosing { file, line } => items::find_enclosing_argument(root, file, *line, argument),
@@ -167,6 +181,21 @@ impl Query for RustQuery {
             }
         }
         check_complete_map(members, &expected)
+    }
+
+    /// A literal's value is checked at every definition found.
+    fn check_target(&self, workspace: &Workspace) -> Vec<String> {
+        let Self::Literal { path, value } = self else {
+            return Vec::new();
+        };
+        items::find_values(&workspace.root, path)
+            .iter()
+            .filter_map(|(span, expression)| match Literal::of_expression(expression) {
+                None => Some(format!("`{path}` at {span} is not a literal")),
+                Some(literal) if !literal.matches(value) => Some(format!("`{path}` at {span} is `{literal}`, not `{value}`")),
+                Some(_) => None,
+            })
+            .collect()
     }
 }
 
@@ -225,6 +254,16 @@ mod tests {
         assert_eq!(members[0].name, "x");
         assert!(read_first_link("test.md", "[`a::Event`](nexus:rust.map-variant)").is_err());
         assert!(Rust.query("map-variant", &[], None).is_err());
+    }
+
+    #[test]
+    fn a_literal_takes_its_path_in_the_title_and_its_value_as_text() {
+        let (query, _) = read_first_link("test.md", "[`16`](nexus:rust.literal (a::LIMIT))").unwrap();
+        assert_query(query.as_ref(), &RustQuery::Literal {
+            path: "a::LIMIT".to_owned(),
+            value: "16".to_owned(),
+        });
+        assert!(read_first_link("test.md", "[`a::LIMIT`](nexus:rust.literal)").is_err());
     }
 
     #[test]

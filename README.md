@@ -120,6 +120,7 @@ writes them, starting with the crate:
 - filesystem.map-entry: `<directory>`, its entries except hidden and ignored ones
 - rust.module: `<module path>`, the crate alone being its root
 - rust.item: `<item path>`, any item but a module or an import, its attributes and doc comment included; an associated item's path goes through its type or trait, a variant's through its enum
+- rust.literal: `<item path> <value>`, a constant or static, as `rust.item` names it, whose value is a literal stating that value; its value is compared, not how it is written, so `16` states `0x10`, and a text states a string or character as it is or written as a Rust literal
 - rust.argument: `[function path] <argument>`, an argument of a function, `self` for its receiver; a method's path goes through its type or trait
 - rust.comment: `[file] "<text>"`, the comments holding the text, a run of comment lines on consecutive lines being one comment whose lines read as one text; the links in it are left out, so a link never matches its own comment
 - rust.map-variant: `<enum path>`, its variants
