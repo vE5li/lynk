@@ -44,5 +44,5 @@ are told apart as the compiler does.
 The lexer's crate is versioned with rustc and gives no stability promise;
 the part used here, comment tokens, has not changed in years. It requires
 `unicode-ident` and `unicode-properties` on the same Unicode version, so
-`unicode-ident` is held back in the lock file until `unicode-properties`
-catches up.
+`unicode-ident` is held back in [`Cargo.lock`](nexus:filesystem.file)
+until `unicode-properties` catches up.

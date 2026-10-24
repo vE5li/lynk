@@ -2,7 +2,9 @@
 
 ## Decision
 
-A link is a Markdown link to `nexus:<provider>.<selector>`, as the
+A link is a Markdown link whose destination is
+[`nexus:`](nexus:rust.literal (nexus::formats::markdown::links::SCHEME))
+followed by `<provider>.<selector>`, as the
 README's [Link syntax](nexus:markdown.section (README.md)) describes.
 Markdown decides where a link starts and ends, and what is code, as
 [`pulldown-cmark`](nexus:cargo.dependency (Cargo.toml)) parses it
@@ -16,7 +18,11 @@ the target ([`nexus::link::Link::read`](nexus:rust.item)). A selector
 taking no arguments ignores the text.
 
 A map is a plain Markdown list between two HTML comments, the opening one
-holding the selector and its arguments. Its body stays prose, read the
+holding [`nexus`](nexus:rust.literal (nexus::formats::markdown::links::MAP_KEYWORD)),
+the selector and its arguments, the closing one
+[`<!-- /nexus -->`](nexus:rust.literal (nexus::formats::markdown::links::MAP_CLOSING))
+([`nexus::formats::markdown::links::find_maps`](nexus:rust.item)). Its
+body stays prose, read the
 same way by every selector that takes one: quotes mean nothing in it, code
 hides comments, and nested links are checked like any other. The map below
 follows these rules; changing how links are read breaks this record until it
