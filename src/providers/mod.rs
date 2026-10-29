@@ -13,6 +13,7 @@ mod cargo;
 mod filesystem;
 mod markdown;
 pub mod nexus;
+mod nix;
 mod protobuf;
 mod rust;
 mod wit;
@@ -51,6 +52,7 @@ pub const PROVIDERS: &[&dyn Provider] = &[
     &wit::Wit,
     &protobuf::Protobuf,
     &cargo::Cargo,
+    &nix::Nix,
     &nexus::Nexus,
 ];
 

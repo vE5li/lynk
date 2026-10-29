@@ -12,8 +12,8 @@ against real files:
 <!-- nexus filesystem.map-entry resources -->
 - nexus.wit: WIT describing nexus as a component
 - nexus.proto: protobuf describing nexus as a service
-- nexus-client: a Rust crate running nexus's command line, with its README
-  and its manifest
+- nexus-client: a Rust crate running nexus's command line, with its
+  README, its manifest and the flake of its development environment
 <!-- /nexus -->
 
 The WIT file describes nexus itself as a component. Its comments link to
@@ -137,6 +137,22 @@ here, one link per way Cargo declares a dependency:
   - Under a header of its own, among the dependencies of its tests:
     [`tempfile`](nexus:cargo.dependency
       (resources/nexus-client/Cargo.toml)).
+<!-- /nexus -->
+
+The crate's flake builds commands for its development environment, and
+each of them is linked here, one link per way a binding builds a command
+and a dev shell lists it:
+
+<!-- nexus nix.* -->
+- dev-shell-command:
+  - Named by a string argument, in a dev shell's `buildInputs`:
+    [`lint`](nexus:nix.dev-shell-command (resources/nexus-client/flake.nix)).
+  - Named by the `name` of an attribute set, unlike its binding:
+    [`test-client`](nexus:nix.dev-shell-command
+      (resources/nexus-client/flake.nix)).
+  - In a list joined to another with `++`:
+    [`references`](nexus:nix.dev-shell-command
+      (resources/nexus-client/flake.nix)).
 <!-- /nexus -->
 
 The crate's README is Markdown written as any repository may write it,

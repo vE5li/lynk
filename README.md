@@ -129,6 +129,7 @@ writes them, starting with the crate:
 - protobuf.message: `<file> <message>`, from its keyword to its closing brace; a nested message's as `<outer>.<message>`, without the package
 - protobuf.map-field: `<file> <message>`, its fields, those of its `oneof`s included; a nested message's as `<outer>.<message>`
 - cargo.dependency: `<manifest> <dependency>`, the dependencies declared under that key in its package's, platforms' and workspace's tables, from the key or the table's header to the end of its last value
+- nix.dev-shell-command: `<file> <command>`, the bindings building a command, named by a string they apply a function to or the `name` of an attribute set they apply it to, that a dev shell lists among what it puts on `PATH`, from the binding's name to the end of its value
 - nexus.selectors: no arguments; a complete map of these selectors
 - nexus.self: no arguments; the tool itself
 - nexus.lint: no arguments; its command checking every link

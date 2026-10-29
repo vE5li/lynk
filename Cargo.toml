@@ -11,6 +11,8 @@ prost-types = { version = "0.14", default-features = false }
 protox-parse = "0.10"
 pulldown-cmark = { version = "0.13", default-features = false }
 ra-ap-rustc_lexer = "0.177.0"
+rnix = "0.15.1"
+rowan = "0.17"
 serde_json = "1"
 syn = { version = "2", default-features = false, features = ["clone-impls", "full", "parsing", "printing", "visit"] }
 toml = "0.9"
