@@ -1,6 +1,6 @@
 //! Rust source, read through its comments, the only part of it that holds
 //! links, as are the languages writing comments the same way; its design
-//! record's [Decision](nexus:markdown.section
+//! record's [Decision](lynk:markdown.section
 //! (design/reads-rust-comments-with-rustc-lexer.md)) says how and why.
 
 use std::path::PathBuf;
@@ -29,7 +29,7 @@ impl Format for Rust {
     }
 }
 
-/// Reads a file of a [`format`](nexus:rust.argument) writing comments as
+/// Reads a file of a [`format`](lynk:rust.argument) writing comments as
 /// Rust does, its comments read as Markdown.
 pub fn read(format: &'static str, path: PathBuf, text: String) -> LinkedDocument {
     let lines = comment_lines(&text);

@@ -1,43 +1,43 @@
-# Nexus writes links as Markdown links
+# Lynk writes links as Markdown links
 
 ## Decision
 
 A link is a Markdown link whose destination is
-[`nexus:`](nexus:rust.literal (nexus::formats::markdown::links::SCHEME))
+[`lynk:`](lynk:rust.literal (lynk::formats::markdown::links::SCHEME))
 followed by `<provider>.<selector>`, as the
-README's [Link syntax](nexus:markdown.section (README.md)) describes.
+README's [Link syntax](lynk:markdown.section (README.md)) describes.
 Markdown decides where a link starts and ends, and what is code, as
-[`pulldown-cmark`](nexus:cargo.dependency (Cargo.toml)) parses it
-([`nexus::formats::markdown::parse`](nexus:rust.module));
-[nexus](nexus:nexus.self) only reads the selector name from the
+[`pulldown-cmark`](lynk:cargo.dependency (Cargo.toml)) parses it
+([`lynk::formats::markdown::parse`](lynk:rust.module));
+[lynk](lynk:lynk.self) only reads the selector name from the
 destination and hands the selector the link's title and text
-([`nexus::formats::markdown::links`](nexus:rust.module)). The text is
+([`lynk::formats::markdown::links`](lynk:rust.module)). The text is
 the selector's last argument and the title holds those before it, so
 every argument is written once, and what the reader sees is the name of
-the target ([`nexus::link::Link::read`](nexus:rust.item)). A selector
+the target ([`lynk::link::Link::read`](lynk:rust.item)). A selector
 taking no arguments ignores the text.
 
 A map is a plain Markdown list between two HTML comments, the opening one
-holding [`nexus`](nexus:rust.literal (nexus::formats::markdown::links::MAP_KEYWORD)),
+holding [`lynk`](lynk:rust.literal (lynk::formats::markdown::links::MAP_KEYWORD)),
 the selector and its arguments, the closing one
-[`<!-- /nexus -->`](nexus:rust.literal (nexus::formats::markdown::links::MAP_CLOSING))
-([`nexus::formats::markdown::links::find_maps`](nexus:rust.item)). Its
+[`<!-- /lynk -->`](lynk:rust.literal (lynk::formats::markdown::links::MAP_CLOSING))
+([`lynk::formats::markdown::links::find_maps`](lynk:rust.item)). Its
 body stays prose, read the
 same way by every selector that takes one: quotes mean nothing in it, code
 hides comments, and nested links are checked like any other. The map below
 follows these rules; changing how links are read breaks this record until it
 is updated:
 
-<!-- nexus filesystem.map-entry
+<!-- lynk filesystem.map-entry
   resources -->
-- nexus-client: a client of the command line; neither
-  `<!-- /nexus -->` in code nor a lone " ends or quotes anything here
-- nexus.wit: what a nested link such as
-  [`find`](nexus:wit.function (resources/nexus.wit)) checks against
-- nexus.proto: what a link wrapped inside its title, such as
-  [`LintResponse.Problem`](nexus:protobuf.message
-    (resources/nexus.proto)), checks against
-<!-- /nexus -->
+- lynk-client: a client of the command line; neither
+  `<!-- /lynk -->` in code nor a lone " ends or quotes anything here
+- lynk.wit: what a nested link such as
+  [`find`](lynk:wit.function (resources/lynk.wit)) checks against
+- lynk.proto: what a link wrapped inside its title, such as
+  [`LintResponse.Problem`](lynk:protobuf.message
+    (resources/lynk.proto)), checks against
+<!-- /lynk -->
 
 ## Why
 

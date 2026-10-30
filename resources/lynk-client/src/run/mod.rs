@@ -1,17 +1,17 @@
-//! Runs the command line [Commands](nexus:markdown.section (README.md))
-//! describes, finding `nexus` on the `PATH`.
+//! Runs the command line [Commands](lynk:markdown.section (README.md))
+//! describes, finding `lynk` on the `PATH`.
 
 use std::fmt;
 use std::path::Path;
 use std::process::Command;
 
 /// The program run, looked up on the `PATH`.
-const PROGRAM: &str = "nexus";
+const PROGRAM: &str = "lynk";
 
 /// Why a command gave nothing to read.
 #[derive(Debug)]
 pub enum Error {
-    /// `nexus` could not be started, most likely missing from the `PATH`.
+    /// `lynk` could not be started, most likely missing from the `PATH`.
     Start(std::io::Error),
     /// It ran and failed for a reason other than finding nothing.
     Failed { stderr: String },
@@ -20,7 +20,7 @@ pub enum Error {
 impl fmt::Display for Error {
     fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            Self::Start(error) => write!(formatter, "running nexus: {error}"),
+            Self::Start(error) => write!(formatter, "running lynk: {error}"),
             Self::Failed { stderr } => formatter.write_str(stderr),
         }
     }
@@ -53,9 +53,9 @@ impl Output {
     }
 }
 
-/// Runs `nexus` with [`arguments`](nexus:rust.argument) on the repository at
-/// [`root`](nexus:rust.argument).
-pub fn nexus(root: &Path, arguments: &[&str]) -> Result<Output, Error> {
+/// Runs `lynk` with [`arguments`](lynk:rust.argument) on the repository at
+/// [`root`](lynk:rust.argument).
+pub fn lynk(root: &Path, arguments: &[&str]) -> Result<Output, Error> {
     let output = Command::new(PROGRAM)
         .arg("--root")
         .arg(root)

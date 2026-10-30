@@ -1,11 +1,11 @@
-// [nexus](nexus:nexus.self) as a service: the links of a repository,
+// [lynk](lynk:lynk.self) as a service: the links of a repository,
 // checked and followed. Links are written as
-// [Link syntax](nexus:markdown.section (README.md)) defines them.
+// [Link syntax](lynk:markdown.section (README.md)) defines them.
 syntax = "proto3";
 
-package nexus.tool;
+package lynk.tool;
 
-// A place in a file, as [`nexus::location`](nexus:rust.module) counts it:
+// A place in a file, as [`lynk::location`](lynk:rust.module) counts it:
 // path relative to the root, line and column from 1.
 message Span {
   string path = 1;
@@ -14,7 +14,7 @@ message Span {
 }
 
 /* Checks every link of the repository at `root`, as
- * [`nexus lint`](nexus:nexus.lint) does. */
+ * [`lynk lint`](lynk:lynk.lint) does. */
 message LintRequest {
   string root = 1;
 }

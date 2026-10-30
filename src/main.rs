@@ -22,7 +22,7 @@ fn main() -> ExitCode {
     match run(Cli::parse()) {
         Ok(exit_code) => exit_code,
         Err(message) => {
-            eprintln!("nexus: {message}");
+            eprintln!("lynk: {message}");
             ExitCode::from(2)
         }
     }
@@ -157,7 +157,7 @@ fn print_found(workspace: &Workspace, query: &str) -> ExitCode {
             .collect();
         match relevance::relevance(&api_key, query, &shortlist) {
             Ok(relevances) => relevance::re_rank(&mut found, &relevances),
-            Err(error) => eprintln!("nexus: not re-ranked, ranking by words: {error}"),
+            Err(error) => eprintln!("lynk: not re-ranked, ranking by words: {error}"),
         }
     }
     for result in found.iter().take(FOUND_LIMIT) {

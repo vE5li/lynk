@@ -1,29 +1,29 @@
-# Nexus reads WIT with wit-parser
+# Lynk reads WIT with wit-parser
 
 ## Decision
 
-The `wit` provider of [nexus](nexus:nexus.self) parses WIT files with
-[`wit-parser`](nexus:cargo.dependency (Cargo.toml))
-([`nexus::providers::wit`](nexus:rust.module)), the parser of the
+The `wit` provider of [lynk](lynk:lynk.self) parses WIT files with
+[`wit-parser`](lynk:cargo.dependency (Cargo.toml))
+([`lynk::providers::wit`](lynk:rust.module)), the parser of the
 Bytecode Alliance's `wasm-tools`, without its default features. A file is
 parsed together with the other WIT files of its directory, as they may
 form one package, or alone if they do not parse; dependencies are not
-resolved ([`nexus::providers::wit::parse_package`](nexus:rust.item)). A
+resolved ([`lynk::providers::wit::parse_package`](lynk:rust.item)). A
 function is found by the span of its name
-([`nexus::providers::wit::find_function`](nexus:rust.item)), a resource's
+([`lynk::providers::wit::find_function`](lynk:rust.item)), a resource's
 named after it
-([`nexus::providers::wit::link_name`](nexus:rust.item)).
+([`lynk::providers::wit::link_name`](lynk:rust.item)).
 
 The links in a WIT file's comments, plain and doc comments alike, are read
 with the reader of Rust comments
-([`nexus::formats::rust::read`](nexus:rust.item)), not with `wit-parser`,
+([`lynk::formats::rust::read`](lynk:rust.item)), not with `wit-parser`,
 as its
-[Decision](nexus:markdown.section
+[Decision](lynk:markdown.section
   (design/reads-rust-comments-with-rustc-lexer.md)) describes.
 
 ## Why
 
-[`nexus lint`](nexus:nexus.lint) runs before every change, so reading a
+[`lynk lint`](lynk:lynk.lint) runs before every change, so reading a
 WIT file must not need its dependencies fetched or a component built. `wit-parser` is the
 reference definition of the language, keeps the span of every function,
 and names a resource's functions after it. Without default features it

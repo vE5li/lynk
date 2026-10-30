@@ -7,8 +7,8 @@ use crate::formats::rust::NAME;
 use crate::location::Span;
 use crate::workspace::{LinkedDocument, Workspace};
 
-/// Every comment of the Rust files, or of [`file`](nexus:rust.argument)
-/// alone, holding [`text`](nexus:rust.argument). A comment is a run of
+/// Every comment of the Rust files, or of [`file`](lynk:rust.argument)
+/// alone, holding [`text`](lynk:rust.argument). A comment is a run of
 /// comment lines on consecutive lines, read as one text, so the text may
 /// spread over its lines, as a link's text may.
 pub fn find_comments(workspace: &Workspace, file: Option<&Path>, text: &str) -> Vec<Span> {
@@ -100,7 +100,7 @@ mod tests {
     fn a_link_does_not_match_its_own_comment() {
         let workspace = workspace(&[(
             "src/a.rs",
-            "// Kept sorted.\nconst A: u8 = 0;\n\n/// As [kept sorted](nexus:rust.comment), above.\nfn b() {}\n",
+            "// Kept sorted.\nconst A: u8 = 0;\n\n/// As [kept sorted](lynk:rust.comment), above.\nfn b() {}\n",
         )]);
         assert_eq!(comments(&workspace, None, "sorted"), vec!["src/a.rs:1:3-1:15"]);
     }

@@ -8,15 +8,15 @@ use crate::document::Document;
 use crate::link::{Found, Link, SyntaxError};
 
 /// What a Markdown link's destination starts with to be a link to check.
-const SCHEME: &str = "nexus:";
+const SCHEME: &str = "lynk:";
 const COMMENT_OPENING: &str = "<!--";
 const COMMENT_CLOSING: &str = "-->";
 /// The word opening a map's comment.
-const MAP_KEYWORD: &str = "nexus";
-const MAP_CLOSING: &str = "<!-- /nexus -->";
+const MAP_KEYWORD: &str = "lynk";
+const MAP_CLOSING: &str = "<!-- /lynk -->";
 
 /// Every link of the document's prose outside code, plus what failed to
-/// parse. [`markdown_links`](nexus:rust.argument) are those Markdown found
+/// parse. [`markdown_links`](lynk:rust.argument) are those Markdown found
 /// in the prose, whatever their destination.
 pub fn find(document: &Document, markdown_links: &[MarkdownLink]) -> Found {
     let mut found = Found::default();
@@ -25,7 +25,7 @@ pub fn find(document: &Document, markdown_links: &[MarkdownLink]) -> Found {
     found.finish()
 }
 
-/// The Markdown links whose destination is a selector after `nexus:`; the
+/// The Markdown links whose destination is a selector after `lynk:`; the
 /// title holds the arguments before the last one, the text.
 fn find_markdown_links(markdown_links: &[MarkdownLink], found: &mut Found) {
     for markdown_link in markdown_links {
@@ -50,8 +50,8 @@ fn find_markdown_links(markdown_links: &[MarkdownLink], found: &mut Found) {
     }
 }
 
-/// The maps written between an opening `<!-- nexus <provider>.<selector>
-/// <arguments> -->` and a closing `<!-- /nexus -->`, each starting a line of
+/// The maps written between an opening `<!-- lynk <provider>.<selector>
+/// <arguments> -->` and a closing `<!-- /lynk -->`, each starting a line of
 /// prose outside code and ending it; nested maps close innermost first.
 fn find_maps(document: &Document, found: &mut Found) {
     struct OpenMap {
@@ -160,8 +160,8 @@ mod tests {
         takes_arguments: true,
     };
 
-    /// [`text`](nexus:rust.argument) read as a file at
-    /// [`path`](nexus:rust.argument).
+    /// [`text`](lynk:rust.argument) read as a file at
+    /// [`path`](lynk:rust.argument).
     fn read(path: &str, text: &str) -> LinkedDocument {
         formats::of(Path::new(path)).unwrap().read(PathBuf::from(path), text.to_owned())
     }
@@ -182,13 +182,13 @@ mod tests {
 
     #[test]
     fn reads_the_arguments_of_a_link_from_its_title_then_its_text() {
-        let text = "See [Phase 2](nexus:markdown.section\n  (\"plans/a b.md\")) here.";
+        let text = "See [Phase 2](lynk:markdown.section\n  (\"plans/a b.md\")) here.";
         let (links, errors) = links_in(text);
         assert!(errors.is_empty());
         assert_eq!(links[0].selector_name, "markdown.section");
         assert_eq!(
             &text[links[0].range.clone()],
-            "[Phase 2](nexus:markdown.section\n  (\"plans/a b.md\"))"
+            "[Phase 2](lynk:markdown.section\n  (\"plans/a b.md\"))"
         );
         let (arguments, _) = links[0].read(text, Shape::LINK).unwrap();
         assert_eq!(arguments, vec![
@@ -205,47 +205,46 @@ mod tests {
 
     #[test]
     fn a_title_may_go_on_over_several_lines() {
-        let text = "[c](nexus:a.b (first\n  \"second\n  argument\"))";
+        let text = "[c](lynk:a.b (first\n  \"second\n  argument\"))";
         let (links, _) = links_in(text);
         assert_eq!(arguments_of(text, &links[0]), vec!["first", "second\nargument", "c"]);
     }
 
     #[test]
     fn reads_a_links_text_with_code_spans_unwrapped() {
-        let text = "[Link\n`syntax`](nexus:markdown.section)";
+        let text = "[Link\n`syntax`](lynk:markdown.section)";
         let (links, _) = links_in(text);
         assert_eq!(arguments_of(text, &links[0]), vec!["Link syntax"]);
     }
 
     #[test]
     fn reads_reference_links_where_they_are_used() {
-        let text = "Run [`nexus lint`][lint].\n\n[lint]: nexus:nexus.lint\n[web]: https://example.com\n";
+        let text = "Run [`lynk lint`][lint].\n\n[lint]: lynk:lynk.lint\n[web]: https://example.com\n";
         let (links, errors) = links_in(text);
         assert!(errors.is_empty());
         assert_eq!(links.len(), 1);
-        assert_eq!(&text[links[0].range.clone()], "[`nexus lint`][lint]");
+        assert_eq!(&text[links[0].range.clone()], "[`lynk lint`][lint]");
     }
 
     #[test]
     fn ignores_links_elsewhere_and_in_code() {
-        let (links, errors) = links_in("[web](https://example.com) `[a](nexus:a.b)`\n\n```\n[c](nexus:c.d)\n```\n");
+        let (links, errors) = links_in("[web](https://example.com) `[a](lynk:a.b)`\n\n```\n[c](lynk:c.d)\n```\n");
         assert!(links.is_empty());
         assert!(errors.is_empty());
     }
 
     #[test]
     fn reports_a_destination_without_a_selector() {
-        assert_eq!(links_in("[a](nexus:self)").1.len(), 1);
+        assert_eq!(links_in("[a](lynk:self)").1.len(), 1);
     }
 
     #[test]
     fn reads_a_map_between_comments() {
-        let text =
-            "Opcodes:\n<!-- nexus rust.map-variant\n  crate::Bar -->\n- Load: LD\n- Read: [RD](nexus:a.b)\n<!-- /nexus -->\nAfter.\n";
+        let text = "Opcodes:\n<!-- lynk rust.map-variant\n  crate::Bar -->\n- Load: LD\n- Read: [RD](lynk:a.b)\n<!-- /lynk -->\nAfter.\n";
         let (links, errors) = links_in(text);
         assert!(errors.is_empty(), "{errors:?}");
         assert_eq!(links[0].selector_name, "rust.map-variant");
-        assert!(text[links[0].range.clone()].ends_with("<!-- /nexus -->"));
+        assert!(text[links[0].range.clone()].ends_with("<!-- /lynk -->"));
         assert_eq!(links[0].nested, vec![links[1].range.clone()]);
         let (arguments, members) = links[0].read(text, MAP).unwrap();
         assert_eq!(arguments[0].text, "crate::Bar");
@@ -253,13 +252,13 @@ mod tests {
             .iter()
             .map(|member| (member.name.as_str(), member.description.as_str()))
             .collect();
-        assert_eq!(members, vec![("Load", "LD"), ("Read", "[RD](nexus:a.b)")]);
+        assert_eq!(members, vec![("Load", "LD"), ("Read", "[RD](lynk:a.b)")]);
     }
 
     #[test]
     fn nested_maps_close_innermost_first_and_belong_to_the_member_holding_them() {
-        let text = "<!-- nexus rust.* -->\n- module:\n  - Inline: [`a`](nexus:rust.module).\n  - Mapped:\n    <!-- nexus \
-                    filesystem.map-entry c -->\n    - d: e\n    <!-- /nexus -->\n- unused: not used\n<!-- /nexus -->\n";
+        let text = "<!-- lynk rust.* -->\n- module:\n  - Inline: [`a`](lynk:rust.module).\n  - Mapped:\n    <!-- lynk \
+                    filesystem.map-entry c -->\n    - d: e\n    <!-- /lynk -->\n- unused: not used\n<!-- /lynk -->\n";
         let (links, errors) = links_in(text);
         assert!(errors.is_empty(), "{errors:?}");
         let selectors: Vec<_> = links.iter().map(|link| link.selector_name.as_str()).collect();
@@ -268,49 +267,49 @@ mod tests {
         let outer = members(text, &links[0]);
         let names: Vec<_> = outer.iter().map(|member| member.name.as_str()).collect();
         assert_eq!(names, vec!["module", "unused"]);
-        assert!(text[outer[0].range.clone()].ends_with("<!-- /nexus -->"));
+        assert!(text[outer[0].range.clone()].ends_with("<!-- /lynk -->"));
         assert_eq!(members(text, &links[2])[0].name, "d");
     }
 
     #[test]
     fn a_body_is_prose_where_code_hides_comments_and_quotes_mean_nothing() {
-        let text = "<!-- nexus rust.* -->\n- module: `<!-- /nexus -->`, a 12\" ruler\n  ```\n  <!-- /nexus -->\n  \
-                    [a](nexus:rust.module)\n  ```\n<!-- /nexus -->\n";
+        let text = "<!-- lynk rust.* -->\n- module: `<!-- /lynk -->`, a 12\" ruler\n  ```\n  <!-- /lynk -->\n  [a](lynk:rust.module)\n  \
+                    ```\n<!-- /lynk -->\n";
         let (links, errors) = links_in(text);
         assert!(errors.is_empty(), "{errors:?}");
         assert_eq!(links.len(), 1);
         let members = members(text, &links[0]);
         assert_eq!(members.len(), 1);
-        assert_eq!(members[0].description.lines().next(), Some("`<!-- /nexus -->`, a 12\" ruler"));
+        assert_eq!(members[0].description.lines().next(), Some("`<!-- /lynk -->`, a 12\" ruler"));
     }
 
     #[test]
     fn reports_unbalanced_and_malformed_map_comments() {
         for text in [
-            "<!-- nexus rust.* -->\n- a\n",
-            "- a\n<!-- /nexus -->\n",
-            "<!-- nexus rust.* --> - a\n<!-- /nexus -->\n",
-            "<!-- nexus rust -->\n<!-- /nexus -->\n",
-            "<!-- nexus rust.*\n- a\n",
+            "<!-- lynk rust.* -->\n- a\n",
+            "- a\n<!-- /lynk -->\n",
+            "<!-- lynk rust.* --> - a\n<!-- /lynk -->\n",
+            "<!-- lynk rust -->\n<!-- /lynk -->\n",
+            "<!-- lynk rust.*\n- a\n",
         ] {
             assert_eq!(links_in(text).1.len(), 1, "{text}");
         }
-        let examples = "`<!-- nexus rust.* -->`\n\n```\n<!-- /nexus -->\n```\n<!-- other comment -->\n";
+        let examples = "`<!-- lynk rust.* -->`\n\n```\n<!-- /lynk -->\n```\n<!-- other comment -->\n";
         assert!(links_in(examples).1.is_empty());
     }
 
     #[test]
     fn reads_links_in_rust_comments_only() {
-        let source = "// [A](nexus:markdown.section)\nfn main() {\n    let text = \"[B](nexus:markdown.section)\";\n}\n";
+        let source = "// [A](lynk:markdown.section)\nfn main() {\n    let text = \"[B](lynk:markdown.section)\";\n}\n";
         let linked = read("test.rs", source);
         assert!(linked.syntax_errors.is_empty());
         assert_eq!(linked.links.len(), 1);
-        assert_eq!(&source[linked.links[0].range.clone()], "[A](nexus:markdown.section)");
+        assert_eq!(&source[linked.links[0].range.clone()], "[A](lynk:markdown.section)");
     }
 
     #[test]
     fn reads_a_map_spread_over_rust_comment_lines() {
-        let source = "/// <!-- nexus rust.map-variant\n/// crate::Bar -->\n///   - Load: LD\n///     on [a](nexus:a.b)\n/// <!-- /nexus \
+        let source = "/// <!-- lynk rust.map-variant\n/// crate::Bar -->\n///   - Load: LD\n///     on [a](lynk:a.b)\n/// <!-- /lynk \
                       -->\nenum Bar {}\n";
         let linked = read("test.rs", source);
         assert!(linked.syntax_errors.is_empty(), "{:?}", linked.syntax_errors);
@@ -325,12 +324,12 @@ mod tests {
 
     #[test]
     fn reads_links_in_wit_comments_only() {
-        let source = "package a:b;\n\n/// Runs [nexus](nexus:nexus.self).\n/* nested /* [lint](nexus:nexus.lint) */ */\nworld w {\n    \
-                      export run: func();\n}\n";
+        let source = "package a:b;\n\n/// Runs [lynk](lynk:lynk.self).\n/* nested /* [lint](lynk:lynk.lint) */ */\nworld w {\n    export \
+                      run: func();\n}\n";
         let linked = read("test.wit", source);
         assert!(linked.syntax_errors.is_empty());
         let texts: Vec<_> = linked.links.iter().map(|link| &source[link.range.clone()]).collect();
-        assert_eq!(texts, vec!["[nexus](nexus:nexus.self)", "[lint](nexus:nexus.lint)"]);
+        assert_eq!(texts, vec!["[lynk](lynk:lynk.self)", "[lint](lynk:lynk.lint)"]);
         assert_eq!(linked.document.units[0].title, "world w {");
     }
 }

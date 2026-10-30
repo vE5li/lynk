@@ -82,8 +82,8 @@ impl Found {
 
 impl Link {
     /// The link's arguments and, for a map, the members of its body, as a
-    /// selector of [`shape`](nexus:rust.argument) reads them.
-    /// [`prose`](nexus:rust.argument) is that of the document the link was
+    /// selector of [`shape`](lynk:rust.argument) reads them.
+    /// [`prose`](lynk:rust.argument) is that of the document the link was
     /// found in.
     pub fn read(&self, prose: &str, shape: Shape) -> Result<(Vec<Argument>, Vec<Member>), SyntaxError> {
         let error = |message: String| SyntaxError {
@@ -109,8 +109,8 @@ impl Link {
     }
 }
 
-/// The arguments written in [`text`](nexus:rust.argument), whose errors are
-/// reported at [`offset`](nexus:rust.argument).
+/// The arguments written in [`text`](lynk:rust.argument), whose errors are
+/// reported at [`offset`](lynk:rust.argument).
 fn arguments(text: &str, offset: usize) -> Result<Vec<Argument>, SyntaxError> {
     let mut arguments = Vec::new();
     let mut characters = text.chars().peekable();
@@ -155,7 +155,7 @@ fn arguments(text: &str, offset: usize) -> Result<Vec<Argument>, SyntaxError> {
     Ok(arguments)
 }
 
-/// The [`body`](nexus:rust.argument) of a map read as members: each
+/// The [`body`](lynk:rust.argument) of a map read as members: each
 /// `- <member>: <description>` line no more indented than the first, with
 /// the lines indented further below it, and the links nested in it, as part
 /// of its description. A body is prose: quotes mean nothing in it.

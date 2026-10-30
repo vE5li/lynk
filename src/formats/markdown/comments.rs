@@ -21,8 +21,8 @@ pub struct CommentLine {
     pub range: Range<usize>,
 }
 
-/// Reads a file of a [`format`](nexus:rust.argument) whose comments, the
-/// [`lines`](nexus:rust.argument) it found in it, are its prose: read as
+/// Reads a file of a [`format`](lynk:rust.argument) whose comments, the
+/// [`lines`](lynk:rust.argument) it found in it, are its prose: read as
 /// Markdown, links included, each run of comment lines being a unit.
 pub fn read(format: &'static str, path: PathBuf, text: String, lines: &[CommentLine]) -> LinkedDocument {
     let comments = comment_text(&text, lines);
@@ -44,9 +44,9 @@ pub fn read(format: &'static str, path: PathBuf, text: String, lines: &[CommentL
 }
 
 /// Each line of a block comment, the comment at
-/// [`start`](nexus:rust.argument) in its source, without its opening
-/// marker, the first [`opening_length`](nexus:rust.argument) bytes, its
-/// closing one, the last [`closing_length`](nexus:rust.argument), and a
+/// [`start`](lynk:rust.argument) in its source, without its opening
+/// marker, the first [`opening_length`](lynk:rust.argument) bytes, its
+/// closing one, the last [`closing_length`](lynk:rust.argument), and a
 /// leading `*` lining the comment up.
 pub fn block_comment_lines(
     comment: &str,
@@ -236,16 +236,16 @@ mod tests {
 
     #[test]
     fn finds_inline_code_and_code_blocks() {
-        let source = "// See `[a](nexus:a.b)`.\n//\n// ```\n// [c](nexus:c.d)\n// ```\ncode\n";
-        assert_eq!(code(source), vec!["`[a](nexus:a.b)`", "```\n// [c](nexus:c.d)\n// ```"]);
+        let source = "// See `[a](lynk:a.b)`.\n//\n// ```\n// [c](lynk:c.d)\n// ```\ncode\n";
+        assert_eq!(code(source), vec!["`[a](lynk:a.b)`", "```\n// [c](lynk:c.d)\n// ```"]);
         assert!(comment_text(source, &line_comments(source)).links.is_empty());
     }
 
     #[test]
     fn finds_links_spread_over_comment_lines() {
-        let source = "// See [it](nexus:a.b\n//   (c d)).\ncode\n";
+        let source = "// See [it](lynk:a.b\n//   (c d)).\ncode\n";
         let links = comment_text(source, &line_comments(source)).links;
-        assert_eq!(&source[links[0].range.clone()], "[it](nexus:a.b\n//   (c d))");
+        assert_eq!(&source[links[0].range.clone()], "[it](lynk:a.b\n//   (c d))");
         assert_eq!(links[0].title.as_deref(), Some("c d"));
     }
 
@@ -262,7 +262,7 @@ mod tests {
 
     #[test]
     fn does_not_mistake_indentation_for_a_code_block() {
-        let source = "code {\n        // [a](nexus:a.b)\n}\n";
+        let source = "code {\n        // [a](lynk:a.b)\n}\n";
         assert!(code(source).is_empty());
     }
 }

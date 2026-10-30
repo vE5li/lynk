@@ -32,7 +32,7 @@ impl Literal {
         }
     }
 
-    /// The value [`written`](nexus:rust.argument) in a link states: a Rust
+    /// The value [`written`](lynk:rust.argument) in a link states: a Rust
     /// literal, maybe negated, or else a text as it is.
     pub fn written(written: &str) -> Self {
         let (negative, unsigned) = match written.strip_prefix('-') {
@@ -44,7 +44,7 @@ impl Literal {
         literal.unwrap_or_else(|| Self::Text(written.to_owned()))
     }
 
-    /// Whether a link stating [`written`](nexus:rust.argument) states this
+    /// Whether a link stating [`written`](lynk:rust.argument) states this
     /// value. A text matches as it is or written as a Rust literal, and an
     /// integer may be written for a float.
     pub fn matches(&self, written: &str) -> bool {

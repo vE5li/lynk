@@ -1,6 +1,6 @@
 //! The dependencies of Cargo manifests, read with `toml`, which keeps where
 //! every key and value is written; its design record's
-//! [Decision](nexus:markdown.section
+//! [Decision](lynk:markdown.section
 //! (design/reads-cargo-manifests-with-toml.md)) says why.
 
 use std::ops::Range;
@@ -60,9 +60,9 @@ impl Query for CargoDependency {
     }
 }
 
-/// The spans of the dependencies called [`name`](nexus:rust.argument) in
-/// the Cargo manifest at [`manifest`](nexus:rust.argument), relative to
-/// [`root`](nexus:rust.argument), in every table declaring dependencies:
+/// The spans of the dependencies called [`name`](lynk:rust.argument) in
+/// the Cargo manifest at [`manifest`](lynk:rust.argument), relative to
+/// [`root`](lynk:rust.argument), in every table declaring dependencies:
 /// the package's, its platforms' and its workspace's. Each span runs from
 /// the dependency's key, or its table's header, to the end of its last
 /// value.
@@ -122,7 +122,7 @@ mod tests {
 
     #[test]
     fn finds_dependencies_written_every_way() {
-        let root = std::env::temp_dir().join(format!("nexus-cargo-{}", std::process::id()));
+        let root = std::env::temp_dir().join(format!("lynk-cargo-{}", std::process::id()));
         let path = root.join("crate/Cargo.toml");
         std::fs::create_dir_all(path.parent().unwrap()).unwrap();
         std::fs::write(

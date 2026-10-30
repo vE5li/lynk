@@ -17,7 +17,7 @@ pub struct Found {
     pub relevance: Option<f64>,
 }
 
-/// The parts of the documentation matching [`query`](nexus:rust.argument), best
+/// The parts of the documentation matching [`query`](lynk:rust.argument), best
 /// first, searching
 /// every document's prose unit by unit, so a match in a long file points
 /// at the paragraph it is in.

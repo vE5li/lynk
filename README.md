@@ -1,49 +1,49 @@
-# nexus
+# lynk
 
 Documentation and code comments that name parts of a code base go stale
 the moment someone changes the code without updating the text, and nothing
-notices. [nexus](nexus:nexus.self) replaces such names with *links* it
+notices. [lynk](lynk:lynk.self) replaces such names with *links* it
 checks against the code, so moving, renaming, adding or removing what a
-link refers to fails [`nexus lint`](nexus:nexus.lint) until the text is
+link refers to fails [`lynk lint`](lynk:lynk.lint) until the text is
 updated:
 
 
 ```
 Every variant maps to a single opcode in the VM:
 
-<!-- nexus rust.map-variant cratename::foo::Bar -->
+<!-- lynk rust.map-variant cratename::foo::Bar -->
 - Load: LD
 - Read: RD
-<!-- /nexus -->
+<!-- /lynk -->
 ```
 
-It reads the file types [`nexus::formats`](nexus:rust.module) lists:
+It reads the file types [`lynk::formats`](lynk:rust.module) lists:
 documentation whole, source code only in its comments.
 
 ## Commands
 
-`nexus [--root <directory>] <command>`; without `--root`, the repository
+`lynk [--root <directory>] <command>`; without `--root`, the repository
 is the nearest directory up holding `.jj` or `.git`.
 
-- [`lint`](nexus:nexus.lint) checks every link of the repository.
-- [`where`](nexus:nexus.where) resolves a link to the spans it points at,
+- [`lint`](lynk:lynk.lint) checks every link of the repository.
+- [`where`](lynk:lynk.where) resolves a link to the spans it points at,
   with their first line.
-- [`ref`](nexus:nexus.ref) lists every place linking to the spans a link
+- [`ref`](lynk:lynk.ref) lists every place linking to the spans a link
   points at.
-- [`find`](nexus:nexus.find) lists the parts of the documentation and the
+- [`find`](lynk:lynk.find) lists the parts of the documentation and the
   comments matching a few words, best first. Unlike links, it matches
   words, so it also finds what nobody linked yet. With `TYPESAFE_API_KEY`
   set, its best word matches are ordered by how relevant they are, shown
   as a probability.
 
-[`where`](nexus:nexus.where) and [`ref`](nexus:nexus.ref) take a
+[`where`](lynk:lynk.where) and [`ref`](lynk:lynk.ref) take a
 `<provider.selector>` and its arguments. On the command line nothing is
-quoted, and a file left out matches every file: `nexus ref markdown.section
+quoted, and a file left out matches every file: `lynk ref markdown.section
 Legacy` lists everything referring to any section titled "Legacy".
 
 ## Link syntax
 
-A link is a Markdown link whose destination is `nexus:`, a *provider* (the
+A link is a Markdown link whose destination is `lynk:`, a *provider* (the
 file type or language its target lives in), a dot and a *selector* (what
 to pick out of it). The link text, what the reader sees, is the selector's
 last argument, its code spans unwrapped; the arguments before it, if any,
@@ -57,10 +57,10 @@ only comments are read, each run of comment lines is read as Markdown,
 links included:
 
 ```
-[Commands](nexus:markdown.section)
-[Layering](nexus:markdown.section (docs/design.md))
-[`OpenWindowOk`](nexus:protobuf.message (protobuf/window.proto))
-[`view_id`](nexus:protobuf.message-field
+[Commands](lynk:markdown.section)
+[Layering](lynk:markdown.section (docs/design.md))
+[`OpenWindowOk`](lynk:protobuf.message (protobuf/window.proto))
+[`view_id`](lynk:protobuf.message-field
   (protobuf/window.proto OpenWindowOk))
 ```
 
@@ -68,16 +68,16 @@ Links used often may be written in reference style, the definition
 holding the selector and arguments:
 
 ```
-[nexus][self] checks links; run [`nexus lint`][lint] before pushing.
+[lynk][self] checks links; run [`lynk lint`][lint] before pushing.
 
-[self]: nexus:nexus.self
-[lint]: nexus:nexus.lint
+[self]: lynk:lynk.self
+[lint]: lynk:lynk.lint
 ```
 
 *Map* selectors list the members of their target in a body, a Markdown
 list of `- <member>: <description>` items between an opening
-`<!-- nexus <provider.selector> <arguments> -->` comment and a closing
-`<!-- /nexus -->`, each starting a line and ending one. Both comments are
+`<!-- lynk <provider.selector> <arguments> -->` comment and a closing
+`<!-- /lynk -->`, each starting a line and ending one. Both comments are
 hidden once rendered, leaving the list. A description may go on over the
 lines indented below its item, nested lists and links included; a link
 nested in a body is checked like any other, and nested maps close
@@ -96,14 +96,14 @@ provider fail the lint until the text describing it follows. On the
 command line, quote it from the shell, which would expand it:
 
 ```
-<!-- nexus wit.* -->
-- function: written as [`find`](nexus:wit.function (nexus.wit))
-<!-- /nexus -->
+<!-- lynk wit.* -->
+- function: written as [`find`](lynk:wit.function (lynk.wit))
+<!-- /lynk -->
 ```
 
 ## Selectors
 
-The selectors [nexus](nexus:nexus.self) implements; a link with any other
+The selectors [lynk](lynk:lynk.self) implements; a link with any other
 selector fails the lint. Arguments left out default to where the link is
 written: without a file, the `markdown` selectors mean the file the link
 is written in, without a file, `rust.comment` means the Rust file the link
@@ -112,7 +112,7 @@ the link is written on, the innermost whose definition, doc comment
 included, holds the link. Rust items are named by their paths as Rust
 writes them, starting with the crate:
 
-<!-- nexus nexus.selectors -->
+<!-- lynk lynk.selectors -->
 - markdown.section: `[file] "<heading>"`, the section under a heading
 - markdown.line: `[file] "<text>"`, a line containing the text
 - filesystem.file: `<path>`
@@ -130,13 +130,13 @@ writes them, starting with the crate:
 - protobuf.map-field: `<file> <message>`, its fields, those of its `oneof`s included; a nested message's as `<outer>.<message>`
 - cargo.dependency: `<manifest> <dependency>`, the dependencies declared under that key in its package's, platforms' and workspace's tables, from the key or the table's header to the end of its last value
 - nix.dev-shell-command: `<file> <command>`, the bindings building a command, named by a string they apply a function to or the `name` of an attribute set they apply it to, that a dev shell lists among what it puts on `PATH`, from the binding's name to the end of its value
-- nexus.selectors: no arguments; a complete map of these selectors
-- nexus.self: no arguments; the tool itself
-- nexus.lint: no arguments; its command checking every link
-- nexus.where: no arguments; its command resolving a link
-- nexus.ref: no arguments; its command listing the links to a target
-- nexus.find: no arguments; its command searching the documentation by words
-<!-- /nexus -->
+- lynk.selectors: no arguments; a complete map of these selectors
+- lynk.self: no arguments; the tool itself
+- lynk.lint: no arguments; its command checking every link
+- lynk.where: no arguments; its command resolving a link
+- lynk.ref: no arguments; its command listing the links to a target
+- lynk.find: no arguments; its command searching the documentation by words
+<!-- /lynk -->
 
 Selectors planned so far:
 

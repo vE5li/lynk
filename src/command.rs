@@ -5,7 +5,7 @@ use clap::{Args, Parser, Subcommand};
 /// Checks and navigates the links between documentation and code.
 #[derive(Debug, Parser)]
 #[command(
-    name = "nexus",
+    name = "lynk",
     after_help = "Arguments given on the command line are never quoted; a file left out matches every file."
 )]
 pub struct Cli {
@@ -44,7 +44,7 @@ pub struct QueryArguments {
 /// This file, relative to the crate.
 pub const SOURCE: &str = file!();
 
-/// The line declaring the subcommand named [`name`](nexus:rust.argument), which
+/// The line declaring the subcommand named [`name`](lynk:rust.argument), which
 /// is where links to it point.
 pub fn source_line(name: &str) -> usize {
     let variant: String = name

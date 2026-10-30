@@ -1,4 +1,4 @@
-//! The problems [`nexus lint`](nexus:nexus.lint) prints, one `span: message` line each.
+//! The problems [`lynk lint`](lynk:lynk.lint) prints, one `span: message` line each.
 
 use crate::span::Span;
 

@@ -72,7 +72,7 @@
         };
       };
 
-      nexus = pkgs.writeShellScriptBin "nexus" ''
+      lynk = pkgs.writeShellScriptBin "lynk" ''
         set -e
         root=$(jj root)
         cargo run --quiet --release --manifest-path "$root/Cargo.toml" -- --root "$root" "$@"
@@ -254,7 +254,7 @@
           toolchain
         ];
         packages = [
-          nexus
+          lynk
           build-rust
           build
           format

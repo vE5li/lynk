@@ -206,7 +206,7 @@ mod tests {
 
     #[test]
     fn an_argument_without_a_function_is_one_of_the_function_the_link_is_on() {
-        let source = "fn main() {}\n\n/// With\n/// [`root`](nexus:rust.argument).\nfn run(root: &str) {}\n";
+        let source = "fn main() {}\n\n/// With\n/// [`root`](lynk:rust.argument).\nfn run(root: &str) {}\n";
         let (query, _) = read_first_link("src/main.rs", source).unwrap();
         assert_query(query.as_ref(), &RustQuery::Argument {
             function: RustFunction::Enclosing {
@@ -215,19 +215,19 @@ mod tests {
             },
             argument: "root".to_owned(),
         });
-        assert!(read_first_link("test.md", "[`root`](nexus:rust.argument)").is_err());
+        assert!(read_first_link("test.md", "[`root`](lynk:rust.argument)").is_err());
         assert!(Rust.query("argument", &["root"], None).is_err());
     }
 
     #[test]
     fn a_comment_without_a_file_is_in_the_rust_file_the_link_is_in() {
-        let (query, _) = read_first_link("src/main.rs", "/// As [kept sorted](nexus:rust.comment).\nfn run() {}\n").unwrap();
+        let (query, _) = read_first_link("src/main.rs", "/// As [kept sorted](lynk:rust.comment).\nfn run() {}\n").unwrap();
         assert_query(query.as_ref(), &RustQuery::Comment {
             file: Some(PathBuf::from("src/main.rs")),
             text: "kept sorted".to_owned(),
         });
-        assert!(read_first_link("test.md", "[kept sorted](nexus:rust.comment)").is_err());
-        let (query, _) = read_first_link("test.md", "[kept sorted](nexus:rust.comment (./src/main.rs))").unwrap();
+        assert!(read_first_link("test.md", "[kept sorted](lynk:rust.comment)").is_err());
+        let (query, _) = read_first_link("test.md", "[kept sorted](lynk:rust.comment (./src/main.rs))").unwrap();
         assert_query(query.as_ref(), &RustQuery::Comment {
             file: Some(PathBuf::from("src/main.rs")),
             text: "kept sorted".to_owned(),
@@ -245,30 +245,30 @@ mod tests {
     fn map_selectors_take_a_path_and_a_body() {
         let (query, members) = read_first_link(
             "test.md",
-            "<!-- nexus rust.map-field a::Event::Move -->\n- x: across\n<!-- /nexus -->\n",
+            "<!-- lynk rust.map-field a::Event::Move -->\n- x: across\n<!-- /lynk -->\n",
         )
         .unwrap();
         assert_query(query.as_ref(), &RustQuery::MapField {
             path: "a::Event::Move".to_owned(),
         });
         assert_eq!(members[0].name, "x");
-        assert!(read_first_link("test.md", "[`a::Event`](nexus:rust.map-variant)").is_err());
+        assert!(read_first_link("test.md", "[`a::Event`](lynk:rust.map-variant)").is_err());
         assert!(Rust.query("map-variant", &[], None).is_err());
     }
 
     #[test]
     fn a_literal_takes_its_path_in_the_title_and_its_value_as_text() {
-        let (query, _) = read_first_link("test.md", "[`16`](nexus:rust.literal (a::LIMIT))").unwrap();
+        let (query, _) = read_first_link("test.md", "[`16`](lynk:rust.literal (a::LIMIT))").unwrap();
         assert_query(query.as_ref(), &RustQuery::Literal {
             path: "a::LIMIT".to_owned(),
             value: "16".to_owned(),
         });
-        assert!(read_first_link("test.md", "[`a::LIMIT`](nexus:rust.literal)").is_err());
+        assert!(read_first_link("test.md", "[`a::LIMIT`](lynk:rust.literal)").is_err());
     }
 
     #[test]
     fn an_argument_of_a_named_function_takes_its_path_in_the_title() {
-        let (query, _) = read_first_link("test.md", "[`root`](nexus:rust.argument (a::run))").unwrap();
+        let (query, _) = read_first_link("test.md", "[`root`](lynk:rust.argument (a::run))").unwrap();
         assert_query(query.as_ref(), &RustQuery::Argument {
             function: RustFunction::Path("a::run".to_owned()),
             argument: "root".to_owned(),

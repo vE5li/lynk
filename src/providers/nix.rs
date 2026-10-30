@@ -1,6 +1,6 @@
 //! The commands of Nix dev shells, read with `rnix` without evaluating
 //! anything; its design record's
-//! [Decision](nexus:markdown.section (design/reads-nix-with-rnix.md))
+//! [Decision](lynk:markdown.section (design/reads-nix-with-rnix.md))
 //! says why.
 
 use std::path::{Path, PathBuf};
@@ -64,8 +64,8 @@ impl Query for NixDevShellCommand {
 }
 
 /// The spans of the bindings in the Nix file at
-/// [`file`](nexus:rust.argument), relative to [`root`](nexus:rust.argument),
-/// that build the command [`command`](nexus:rust.argument) and are listed
+/// [`file`](lynk:rust.argument), relative to [`root`](lynk:rust.argument),
+/// that build the command [`command`](lynk:rust.argument) and are listed
 /// among a dev shell's inputs. A binding builds a command when its value
 /// applies a function to the command's name, given as a string or as the
 /// `name` of an attribute set. Each span runs from the binding's name to the
@@ -149,8 +149,8 @@ fn binding_name(binding: &ast::AttrpathValue) -> Option<String> {
     Some(identifier.ident_token()?.text().to_owned())
 }
 
-/// Whether [`value`](nexus:rust.argument) applies a function to
-/// [`command`](nexus:rust.argument), as one of its arguments however many it
+/// Whether [`value`](lynk:rust.argument) applies a function to
+/// [`command`](lynk:rust.argument), as one of its arguments however many it
 /// is applied to.
 fn builds_command(value: &ast::Expr, command: &str) -> bool {
     let mut expression = value.clone();
@@ -168,7 +168,7 @@ fn builds_command(value: &ast::Expr, command: &str) -> bool {
     }
 }
 
-/// Whether an argument is [`command`](nexus:rust.argument) as a string, or
+/// Whether an argument is [`command`](lynk:rust.argument) as a string, or
 /// an attribute set whose `name` is that string.
 fn names_command(argument: &ast::Expr, command: &str) -> bool {
     match argument {
@@ -199,7 +199,7 @@ mod tests {
 
     #[test]
     fn finds_commands_listed_in_a_dev_shell() {
-        let root = std::env::temp_dir().join(format!("nexus-nix-{}", std::process::id()));
+        let root = std::env::temp_dir().join(format!("lynk-nix-{}", std::process::id()));
         std::fs::create_dir_all(&root).unwrap();
         std::fs::write(
             root.join("flake.nix"),

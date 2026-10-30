@@ -1,16 +1,16 @@
-# Nexus names Rust items by their paths
+# Lynk names Rust items by their paths
 
 ## Decision
 
-The `rust` selectors of [nexus](nexus:nexus.self) naming an item name
+The `rust` selectors of [lynk](lynk:lynk.self) naming an item name
 modules, items and functions by their paths as Rust writes them, starting with the crate's
-name as code using it writes it ([`nexus::providers::rust`](nexus:rust.module)): its
+name as code using it writes it ([`lynk::providers::rust`](lynk:rust.module)): its
 library's name when the
 manifest gives one, otherwise its package's with dashes turned into
-underscores ([`nexus::providers::rust::items::crate_name`](nexus:rust.item)).
+underscores ([`lynk::providers::rust::items::crate_name`](lynk:rust.item)).
 A method's or other associated item's path goes through its
 type or trait, and a variant's through its enum, as using it by its full
-path does ([`nexus::providers::rust::items::find_item`](nexus:rust.item)).
+path does ([`lynk::providers::rust::items::find_item`](lynk:rust.item)).
 
 ## Why
 

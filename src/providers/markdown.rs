@@ -112,7 +112,7 @@ mod tests {
 
     #[test]
     fn the_text_of_a_link_is_its_last_argument() {
-        let (query, members) = read_first_link("test.md", "[Two\nwords](nexus:markdown.section\n  (docs/a.md))").unwrap();
+        let (query, members) = read_first_link("test.md", "[Two\nwords](lynk:markdown.section\n  (docs/a.md))").unwrap();
         assert_query(query.as_ref(), &MarkdownQuery::Section {
             file: Some(PathBuf::from("docs/a.md")),
             heading: "Two words".to_owned(),
@@ -122,7 +122,7 @@ mod tests {
 
     #[test]
     fn a_file_left_out_is_the_one_the_link_is_written_in() {
-        let (query, _) = read_first_link("docs/b.md", "[A line](nexus:markdown.line)").unwrap();
+        let (query, _) = read_first_link("docs/b.md", "[A line](lynk:markdown.line)").unwrap();
         assert_query(query.as_ref(), &MarkdownQuery::Line {
             file: Some(PathBuf::from("docs/b.md")),
             text: "A line".to_owned(),
@@ -131,7 +131,7 @@ mod tests {
 
     #[test]
     fn arguments_spread_over_rust_comment_lines() {
-        let source = "//! [Decision](nexus:markdown.section\n//! (docs/a.md))\nfn main() {}\n";
+        let source = "//! [Decision](lynk:markdown.section\n//! (docs/a.md))\nfn main() {}\n";
         let (query, _) = read_first_link("test.rs", source).unwrap();
         assert_query(query.as_ref(), &MarkdownQuery::Section {
             file: Some(PathBuf::from("docs/a.md")),

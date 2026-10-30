@@ -1,10 +1,10 @@
-package nexus:tool;
+package lynk:tool;
 
-/// [nexus](nexus:nexus.self) as a component: the links of a repository, checked and
+/// [lynk](lynk:lynk.self) as a component: the links of a repository, checked and
 /// followed. Links are written as
-/// [Link syntax](nexus:markdown.section (README.md)) defines them.
+/// [Link syntax](lynk:markdown.section (README.md)) defines them.
 interface links {
-    /// A place in a file, as [`nexus::location`](nexus:rust.module) counts it: path
+    /// A place in a file, as [`lynk::location`](lynk:rust.module) counts it: path
     /// relative to the root, line and column from 1.
     record span {
         path: string,
@@ -12,43 +12,43 @@ interface links {
         column: u32,
     }
 
-    /// A link that fails [`nexus lint`](nexus:nexus.lint), and why.
+    /// A link that fails [`lynk lint`](lynk:lynk.lint), and why.
     record problem {
         at: span,
         message: string,
     }
 
     /// A repository and the links of its documents, the files
-    /// [`nexus::workspace`](nexus:rust.module) reads.
+    /// [`lynk::workspace`](lynk:rust.module) reads.
     resource workspace {
         /// Reads every document under `root`, the repository's root
         /// directory, as the README's
-        /// [Commands](nexus:markdown.section (README.md)) define it.
+        /// [Commands](lynk:markdown.section (README.md)) define it.
         constructor(root: string);
         /// The root above `directory`, the
-        /// [nearest directory up](nexus:markdown.line (README.md)) holding
+        /// [nearest directory up](lynk:markdown.line (README.md)) holding
         /// a repository's own directory, as the README names them.
         find-root: static func(directory: string) -> option<string>;
-        /// Checks every link, as [`nexus lint`](nexus:nexus.lint) does.
+        /// Checks every link, as [`lynk lint`](lynk:lynk.lint) does.
         lint: func() -> list<problem>;
-        /// The spans a link points at, as [`nexus where`](nexus:nexus.where)
+        /// The spans a link points at, as [`lynk where`](lynk:lynk.where)
         /// prints them.
         locate: func(link: string) -> result<list<span>, string>;
         /// The places linking to what a link points at, found as
-        /// [`nexus ref`](nexus:nexus.ref) finds them: through the spans of
-        /// [`workspace.locate`](nexus:wit.function (resources/nexus.wit)).
+        /// [`lynk ref`](lynk:lynk.ref) finds them: through the spans of
+        /// [`workspace.locate`](lynk:wit.function (resources/lynk.wit)).
         references: func(link: string) -> result<list<span>, string>;
     }
 
     /// The parts of the documentation matching `words`, best first, as
-    /// [`nexus find`](nexus:nexus.find) lists them.
+    /// [`lynk find`](lynk:lynk.find) lists them.
     find: func(root: string, words: list<string>) -> list<span>;
 }
 
-/// [nexus](nexus:nexus.self) with its command line.
+/// [lynk](lynk:lynk.self) with its command line.
 world tool {
     export links;
-    /// Runs the command line [Commands](nexus:markdown.section (README.md))
+    /// Runs the command line [Commands](lynk:markdown.section (README.md))
     /// describes, returning its exit code.
     export run: func(arguments: list<string>) -> u8;
 }

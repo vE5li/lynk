@@ -1,9 +1,9 @@
-# Nexus records decisions as living design records
+# Lynk records decisions as living design records
 
 ## Decision
 
 Decisions about the architecture or the tooling are recorded in a
-top-level [`design`](nexus:filesystem.directory) directory, one short
+top-level [`design`](lynk:filesystem.directory) directory, one short
 file per decision, named after it, with three sections: *Decision* (what
 was decided), *Why* and *Alternatives* (what was discarded, and why).
 Like any text, a record links to what it is about, and states what is
@@ -25,7 +25,7 @@ updated in the same change, and the choice it replaces moves into
 ## Why
 
 A record is text like any other, so its links are checked by
-[`nexus lint`](nexus:nexus.lint): a superseded record kept around would
+[`lynk lint`](lynk:lynk.lint): a superseded record kept around would
 keep linking to code that no longer exists, and fail the lint. Updating
 the record keeps it true; moving the replaced choice into *Alternatives*
 keeps the reason for changing course in the text, where it is read,

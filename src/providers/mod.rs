@@ -11,8 +11,8 @@ use crate::location::Span;
 use crate::workspace::Workspace;
 mod cargo;
 mod filesystem;
+pub mod lynk;
 mod markdown;
-pub mod nexus;
 mod nix;
 mod protobuf;
 mod rust;
@@ -23,10 +23,10 @@ pub trait Provider {
     fn name(&self) -> &'static str;
     /// The names of its selectors, without the provider.
     fn selectors(&self) -> &'static [&'static str];
-    /// How one of its [`selector`](nexus:rust.argument)s reads a link.
+    /// How one of its [`selector`](lynk:rust.argument)s reads a link.
     fn shape(&self, selector: &str) -> Shape;
-    /// One of its [`selector`](nexus:rust.argument)s with its arguments
-    /// interpreted. [`place`](nexus:rust.argument) is where its link is
+    /// One of its [`selector`](lynk:rust.argument)s with its arguments
+    /// interpreted. [`place`](lynk:rust.argument) is where its link is
     /// written, `None` on the command line.
     fn query(&self, selector: &str, arguments: &[&str], place: Option<&Place>) -> Result<Box<dyn Query>, String>;
 }
@@ -53,7 +53,7 @@ pub const PROVIDERS: &[&dyn Provider] = &[
     &protobuf::Protobuf,
     &cargo::Cargo,
     &nix::Nix,
-    &nexus::Nexus,
+    &lynk::Lynk,
 ];
 
 /// This file, relative to the crate: where the providers are listed.
@@ -131,7 +131,7 @@ pub fn query(selector_name: &str, arguments: &[Argument], place: Option<&Place>)
 
 /// Reads a link's content as its selector defines it: its arguments, then
 /// the members of its body for a map selector.
-/// [`document`](nexus:rust.argument) is the one the link is written in.
+/// [`document`](lynk:rust.argument) is the one the link is written in.
 pub fn of_link(link: &Link, document: &Document) -> Result<(Box<dyn Query>, Vec<Member>), SyntaxError> {
     let error = |message| SyntaxError {
         message,
@@ -156,7 +156,7 @@ struct EverySelector {
 impl Query for EverySelector {
     /// The list of providers, which their selectors are reached from.
     fn resolve(&self, workspace: &Workspace) -> Vec<Span> {
-        vec![Span::whole_file(&nexus::own_source(workspace, SOURCE))]
+        vec![Span::whole_file(&lynk::own_source(workspace, SOURCE))]
     }
 
     fn check_members(&self, members: &[Member], _workspace: &Workspace) -> Vec<MemberError> {
@@ -224,8 +224,8 @@ pub mod tests {
     use crate::formats;
 
     /// The query and members of the first link in
-    /// [`text`](nexus:rust.argument), read as a file at
-    /// [`path`](nexus:rust.argument).
+    /// [`text`](lynk:rust.argument), read as a file at
+    /// [`path`](lynk:rust.argument).
     pub fn read_first_link(path: &str, text: &str) -> Result<(Box<dyn Query>, Vec<Member>), SyntaxError> {
         let format = formats::of(Path::new(path)).unwrap();
         let linked = format.read(PathBuf::from(path), text.to_owned());
@@ -233,8 +233,8 @@ pub mod tests {
         of_link(&linked.links[0], &linked.document)
     }
 
-    /// Whether [`query`](nexus:rust.argument) is
-    /// [`expected`](nexus:rust.argument), queries being compared as they
+    /// Whether [`query`](lynk:rust.argument) is
+    /// [`expected`](lynk:rust.argument), queries being compared as they
     /// print.
     pub fn assert_query(query: &dyn Query, expected: &dyn Query) {
         assert_eq!(format!("{query:?}"), format!("{expected:?}"));
@@ -280,14 +280,14 @@ pub mod tests {
 
     #[test]
     fn a_star_takes_a_body_and_no_arguments() {
-        let (_, members) = read_first_link("test.md", "<!-- nexus rust.* -->\n- module: a\n<!-- /nexus -->\n").unwrap();
+        let (_, members) = read_first_link("test.md", "<!-- lynk rust.* -->\n- module: a\n<!-- /lynk -->\n").unwrap();
         assert_eq!(members[0].name, "module");
-        assert!(read_first_link("test.md", "<!-- nexus rust.* a -->\n- module: a\n<!-- /nexus -->\n").is_err());
+        assert!(read_first_link("test.md", "<!-- lynk rust.* a -->\n- module: a\n<!-- /lynk -->\n").is_err());
     }
 
     #[test]
     fn a_selector_without_a_body_is_not_a_map() {
-        assert!(read_first_link("test.md", "<!-- nexus filesystem.file a -->\n- b: c\n<!-- /nexus -->\n").is_err());
+        assert!(read_first_link("test.md", "<!-- lynk filesystem.file a -->\n- b: c\n<!-- /lynk -->\n").is_err());
     }
 
     #[test]

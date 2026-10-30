@@ -92,7 +92,7 @@ mod tests {
     fn a_map_selector_reads_its_body_after_its_arguments() {
         let (query, members) = read_first_link(
             "test.md",
-            "<!-- nexus filesystem.map-entry\n  src -->\n- a: b\n- c: d \"quoted\"\n<!-- /nexus -->\n",
+            "<!-- lynk filesystem.map-entry\n  src -->\n- a: b\n- c: d \"quoted\"\n<!-- /lynk -->\n",
         )
         .unwrap();
         assert_query(query.as_ref(), &FilesystemQuery::MapEntry {

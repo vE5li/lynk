@@ -1,6 +1,6 @@
 //! The functions of WIT files, read with `wit-parser` without resolving
 //! dependencies; its design record's
-//! [Decision](nexus:markdown.section (design/reads-wit-with-wit-parser.md))
+//! [Decision](lynk:markdown.section (design/reads-wit-with-wit-parser.md))
 //! says why.
 
 use std::path::{Path, PathBuf};
@@ -53,9 +53,9 @@ impl Query for WitFunction {
     }
 }
 
-/// The spans of the names of the functions called [`name`](nexus:rust.argument)
-/// in the WIT file at [`file`](nexus:rust.argument), relative to
-/// [`root`](nexus:rust.argument). A resource's functions are named after it,
+/// The spans of the names of the functions called [`name`](lynk:rust.argument)
+/// in the WIT file at [`file`](lynk:rust.argument), relative to
+/// [`root`](lynk:rust.argument). A resource's functions are named after it,
 /// `<resource>.<function>`, its constructor `<resource>.constructor`.
 fn find_function(root: &Path, file: &Path, name: &str) -> Vec<Span> {
     let absolute = root.join(file);
@@ -81,7 +81,7 @@ fn find_function(root: &Path, file: &Path, name: &str) -> Vec<Span> {
     spans
 }
 
-/// The packages of the file at [`path`](nexus:rust.argument), parsed with the
+/// The packages of the file at [`path`](lynk:rust.argument), parsed with the
 /// other WIT files of its directory, since a package may span them and a file
 /// alone may not parse; failing that, of the file alone. Also returns the byte
 /// offsets the file occupies in the parsed sources, which the spans count in.
@@ -156,7 +156,7 @@ mod tests {
 
     #[test]
     fn finds_functions_of_interfaces_worlds_and_resources() {
-        let root = std::env::temp_dir().join(format!("nexus-wit-{}", std::process::id()));
+        let root = std::env::temp_dir().join(format!("lynk-wit-{}", std::process::id()));
         let files =
             [
                 (

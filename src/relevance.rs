@@ -1,6 +1,6 @@
 //! Re-ranks `find`'s best word matches by asking TypeSafe whether each one
 //! is relevant to the task; its design record's
-//! [Decision](nexus:markdown.section (design/find-re-ranks-with-typesafe.md))
+//! [Decision](lynk:markdown.section (design/find-re-ranks-with-typesafe.md))
 //! says why.
 
 use std::time::Duration;
@@ -23,7 +23,7 @@ const TIMEOUT: Duration = Duration::from_secs(10);
 const QUESTION: &str = "Is `passage` relevant to someone about to work on the task described in the state?";
 
 /// The probability that each passage is relevant to
-/// [`task`](nexus:rust.argument), in order.
+/// [`task`](lynk:rust.argument), in order.
 pub fn relevance(api_key: &str, task: &str, passages: &[&str]) -> Result<Vec<f64>, String> {
     let questions: serde_json::Map<String, Value> = passages
         .iter()

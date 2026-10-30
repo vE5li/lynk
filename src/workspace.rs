@@ -11,8 +11,8 @@ pub struct LinkedDocument {
 }
 
 impl LinkedDocument {
-    /// The [`document`](nexus:rust.argument) with the links
-    /// [`find`](nexus:rust.argument) finds in it.
+    /// The [`document`](lynk:rust.argument) with the links
+    /// [`find`](lynk:rust.argument) finds in it.
     pub fn new(document: Document, find: impl FnOnce(&Document) -> Found) -> Self {
         let found = find(&document);
         Self {
@@ -55,7 +55,7 @@ impl Workspace {
     }
 }
 
-/// The nearest ancestor of [`start`](nexus:rust.argument) holding a `.jj` or
+/// The nearest ancestor of [`start`](lynk:rust.argument) holding a `.jj` or
 /// `.git` directory.
 pub fn find_root(start: &Path) -> Option<PathBuf> {
     start

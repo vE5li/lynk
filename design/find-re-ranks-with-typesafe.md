@@ -1,19 +1,19 @@
-# Nexus find re-ranks with TypeSafe
+# Lynk find re-ranks with TypeSafe
 
 ## Decision
 
-[`nexus find`](nexus:nexus.find) picks the
-[`30`](nexus:rust.literal (nexus::relevance::SHORTLIST_LENGTH)) best word
+[`lynk find`](lynk:lynk.find) picks the
+[`30`](lynk:rust.literal (lynk::relevance::SHORTLIST_LENGTH)) best word
 matches, then asks TypeSafe's model
-[`jev-latest`](nexus:rust.literal (nexus::relevance::MODEL)), in one
+[`jev-latest`](lynk:rust.literal (lynk::relevance::MODEL)), in one
 request, whether each of them is relevant to the
-task ([`nexus::relevance::relevance`](nexus:rust.item)), and orders them
-by that probability ([`nexus::relevance::re_rank`](nexus:rust.item)). It
+task ([`lynk::relevance::relevance`](lynk:rust.item)), and orders them
+by that probability ([`lynk::relevance::re_rank`](lynk:rust.item)). It
 does so only when
-[`TYPESAFE_API_KEY`](nexus:rust.literal (nexus::relevance::API_KEY_VARIABLE))
+[`TYPESAFE_API_KEY`](lynk:rust.literal (lynk::relevance::API_KEY_VARIABLE))
 is set, and keeps the
 word ranking when it is not or the request fails. The request is made with
-[`ureq`](nexus:cargo.dependency (Cargo.toml)).
+[`ureq`](lynk:cargo.dependency (Cargo.toml)).
 
 ## Why
 

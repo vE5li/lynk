@@ -1,4 +1,4 @@
-//! nexus itself: a provider of the tool, its commands and its selectors.
+//! lynk itself: a provider of the tool, its commands and its selectors.
 
 use std::path::{Path, PathBuf};
 
@@ -8,11 +8,11 @@ use crate::location::{Position, Span};
 use crate::providers::{self, MemberError, Place, Provider, Query, check_complete_map, no_arguments};
 use crate::workspace::Workspace;
 
-pub const NAME: &str = "nexus";
+pub const NAME: &str = "lynk";
 
-pub struct Nexus;
+pub struct Lynk;
 
-impl Provider for Nexus {
+impl Provider for Lynk {
     fn name(&self) -> &'static str {
         NAME
     }
@@ -31,16 +31,16 @@ impl Provider for Nexus {
     fn query(&self, selector: &str, arguments: &[&str], _place: Option<&Place>) -> Result<Box<dyn Query>, String> {
         no_arguments(&format!("{NAME}.{selector}"), arguments)?;
         Ok(Box::new(match selector {
-            "selectors" => NexusQuery::Selectors,
-            "self" => NexusQuery::Tool,
+            "selectors" => LynkQuery::Selectors,
+            "self" => LynkQuery::Tool,
             // Every other selector is named after the subcommand it points at.
-            command => NexusQuery::Command(command.to_owned()),
+            command => LynkQuery::Command(command.to_owned()),
         }))
     }
 }
 
 #[derive(Debug)]
-enum NexusQuery {
+enum LynkQuery {
     /// The selectors of every provider, as complete map; defined where the
     /// providers are listed.
     Selectors,
@@ -50,7 +50,7 @@ enum NexusQuery {
     Command(String),
 }
 
-impl Query for NexusQuery {
+impl Query for LynkQuery {
     fn resolve(&self, workspace: &Workspace) -> Vec<Span> {
         match self {
             Self::Selectors => vec![Span::whole_file(&own_source(workspace, providers::SOURCE))],
@@ -95,7 +95,7 @@ mod tests {
     #[test]
     fn every_command_selector_names_a_subcommand() {
         let cli = command::Cli::command();
-        for selector in Nexus
+        for selector in Lynk
             .selectors()
             .iter()
             .filter(|selector| !matches!(**selector, "selectors" | "self"))
@@ -106,7 +106,7 @@ mod tests {
 
     #[test]
     fn a_selector_without_arguments_ignores_the_text_of_its_link() {
-        let (query, _) = read_first_link("test.md", "[the lint](nexus:nexus.lint)").unwrap();
-        assert_query(query.as_ref(), &NexusQuery::Command("lint".to_owned()));
+        let (query, _) = read_first_link("test.md", "[the lint](lynk:lynk.lint)").unwrap();
+        assert_query(query.as_ref(), &LynkQuery::Command("lint".to_owned()));
     }
 }

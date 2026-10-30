@@ -595,6 +595,26 @@ dependencies = [
 ]
 
 [[package]]
+name = "lynk"
+version = "0.1.0"
+dependencies = [
+ "clap",
+ "ignore",
+ "proc-macro2",
+ "prost-types",
+ "protox-parse",
+ "pulldown-cmark",
+ "ra-ap-rustc_lexer",
+ "rnix",
+ "rowan",
+ "serde_json",
+ "syn 2.0.119",
+ "toml",
+ "ureq",
+ "wit-parser",
+]
+
+[[package]]
 name = "memchr"
 version = "2.8.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -639,26 +659,6 @@ checksum = "b63fbc4a50860e98e7b2aa7804ded1db5cbc3aff9193adaff57a6931bf7c4b4c"
 dependencies = [
  "adler2",
  "simd-adler32",
-]
-
-[[package]]
-name = "nexus"
-version = "0.1.0"
-dependencies = [
- "clap",
- "ignore",
- "proc-macro2",
- "prost-types",
- "protox-parse",
- "pulldown-cmark",
- "ra-ap-rustc_lexer",
- "rnix",
- "rowan",
- "serde_json",
- "syn 2.0.119",
- "toml",
- "ureq",
- "wit-parser",
 ]
 
 [[package]]

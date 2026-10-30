@@ -1,5 +1,5 @@
 //! Protobuf files, read through their comments, as Markdown; their design
-//! record's [Decision](nexus:markdown.section
+//! record's [Decision](lynk:markdown.section
 //! (design/reads-protobuf-with-protox-parse.md)) says how and why.
 
 use std::path::PathBuf;

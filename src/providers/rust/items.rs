@@ -1,5 +1,5 @@
 //! The `rust` provider reads source files with `syn`, without building
-//! anything; [Decision](nexus:markdown.section (design/reads-rust-with-syn.md))
+//! anything; [Decision](lynk:markdown.section (design/reads-rust-with-syn.md))
 //! says why and what that leaves out.
 
 use std::path::{Path, PathBuf};
@@ -11,7 +11,7 @@ use syn::{Expr, Fields, FnArg, ForeignItem, Ident, ImplItem, Item, ItemMod, Pat,
 use crate::location::{Position, Span};
 
 /// The directory of the package whose crate is named
-/// [`name`](nexus:rust.argument), relative to [`root`](nexus:rust.argument).
+/// [`name`](lynk:rust.argument), relative to [`root`](lynk:rust.argument).
 fn find_crate(root: &Path, name: &str) -> Option<PathBuf> {
     ignore::WalkBuilder::new(root)
         .build()
@@ -46,7 +46,7 @@ struct ModuleContext {
 
 /// The module at a path written as in Rust, `<crate>::<module>::…`, the
 /// crate alone being its root; paths are relative to
-/// [`root`](nexus:rust.argument).
+/// [`root`](lynk:rust.argument).
 pub fn find_module(root: &Path, path: &str) -> Option<Span> {
     let segments: Vec<&str> = path.split("::").collect();
     Some(module_at(root, &segments)?.span)
@@ -353,8 +353,8 @@ pub fn find_argument(root: &Path, function_path: &str, argument: &str) -> Vec<Sp
 }
 
 /// The spans of an argument of the innermost function whose definition,
-/// its doc comment and body included, holds [`line`](nexus:rust.argument) of
-/// [`file`](nexus:rust.argument), relative to [`root`](nexus:rust.argument).
+/// its doc comment and body included, holds [`line`](lynk:rust.argument) of
+/// [`file`](lynk:rust.argument), relative to [`root`](lynk:rust.argument).
 pub fn find_enclosing_argument(root: &Path, file: &Path, line: usize, argument: &str) -> Vec<Span> {
     let Some(parsed) = std::fs::read_to_string(root.join(file))
         .ok()
@@ -409,7 +409,7 @@ impl<'ast> Visit<'ast> for EnclosingFunctions {
     }
 }
 
-/// The argument named [`name`](nexus:rust.argument) in a signature, `self` for
+/// The argument named [`name`](lynk:rust.argument) in a signature, `self` for
 /// the receiver; arguments destructured by a pattern have no name.
 fn argument_span(file: &Path, signature: &Signature, name: &str) -> Option<Span> {
     signature
@@ -578,7 +578,7 @@ mod tests {
     }
 
     fn temporary_package(name: &str) -> PathBuf {
-        let root = std::env::temp_dir().join(format!("nexus-rust-{name}-{}", std::process::id()));
+        let root = std::env::temp_dir().join(format!("lynk-rust-{name}-{}", std::process::id()));
         write_package(&root);
         root
     }

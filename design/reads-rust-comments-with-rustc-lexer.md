@@ -1,24 +1,24 @@
-# Nexus reads Rust comments with rustc's lexer
+# Lynk reads Rust comments with rustc's lexer
 
 ## Decision
 
-[nexus](nexus:nexus.self) reads the links in every comment of a Rust file,
+[lynk](lynk:lynk.self) reads the links in every comment of a Rust file,
 plain and doc comments alike, and nothing else of it. It finds them with
-[`ra-ap-rustc_lexer`](nexus:cargo.dependency (Cargo.toml)), rustc's own
+[`ra-ap-rustc_lexer`](lynk:cargo.dependency (Cargo.toml)), rustc's own
 lexer as published for rust-analyzer
-([`nexus::formats::rust::comment_lines`](nexus:rust.item)). The lines of
+([`lynk::formats::rust::comment_lines`](lynk:rust.item)). The lines of
 the comments are then read by the Markdown format, as every format's
 comments are
-([`nexus::formats::markdown::comments::read`](nexus:rust.item)): each run of
+([`lynk::formats::markdown::comments::read`](lynk:rust.item)): each run of
 comment lines on consecutive lines is read as Markdown, so links are
 Markdown links, inline code and code blocks hold examples, as in Markdown
-files, and each run is one of the units [`nexus find`](nexus:nexus.find)
+files, and each run is one of the units [`lynk find`](lynk:lynk.find)
 searches, titled by the line of code it is about. WIT files, whose
 comments follow Rust's, are lexed the same way (their
-[Decision](nexus:markdown.section (design/reads-wit-with-wit-parser.md)));
+[Decision](lynk:markdown.section (design/reads-wit-with-wit-parser.md)));
 languages whose comments only look like Rust's are lexed by their own
 format, as protobuf's
-[Decision](nexus:markdown.section
+[Decision](lynk:markdown.section
   (design/reads-protobuf-with-protox-parse.md)) describes.
 
 ## Why
@@ -32,10 +32,10 @@ are told apart as the compiler does.
 
 ## Alternatives
 
-- **[`syn`](nexus:cargo.dependency (Cargo.toml)) or
-  [`proc-macro2`](nexus:cargo.dependency (Cargo.toml))**, already used to
+- **[`syn`](lynk:cargo.dependency (Cargo.toml)) or
+  [`proc-macro2`](lynk:cargo.dependency (Cargo.toml))**, already used to
   find modules and items
-  ([Decision](nexus:markdown.section (design/reads-rust-with-syn.md))): no
+  ([Decision](lynk:markdown.section (design/reads-rust-with-syn.md))): no
   new dependency, but both drop plain comments and keep only doc comments,
   as attributes, so links in plain comments would go unchecked.
 - **A lexer of our own**: no dependency, but repeats what rustc's lexer
@@ -44,5 +44,5 @@ are told apart as the compiler does.
 The lexer's crate is versioned with rustc and gives no stability promise;
 the part used here, comment tokens, has not changed in years. It requires
 `unicode-ident` and `unicode-properties` on the same Unicode version, so
-`unicode-ident` is held back in [`Cargo.lock`](nexus:filesystem.file)
+`unicode-ident` is held back in [`Cargo.lock`](lynk:filesystem.file)
 until `unicode-properties` catches up.

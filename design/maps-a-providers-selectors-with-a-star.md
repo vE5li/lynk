@@ -1,19 +1,19 @@
-# Nexus maps a provider's selectors with a star
+# Lynk maps a provider's selectors with a star
 
 ## Decision
 
-Any provider of [nexus](nexus:nexus.self) can be linked as `<provider>.`
+Any provider of [lynk](lynk:lynk.self) can be linked as `<provider>.`
 followed by
-[`*`](nexus:rust.literal (nexus::providers::EVERY_SELECTOR)),
+[`*`](lynk:rust.literal (lynk::providers::EVERY_SELECTOR)),
 a complete map of its selectors (the README's
-[Link syntax](nexus:markdown.section (README.md))), checked as every
+[Link syntax](lynk:markdown.section (README.md))), checked as every
 complete map is
-([`nexus::providers::check_complete_map`](nexus:rust.item)). It is
+([`lynk::providers::check_complete_map`](lynk:rust.item)). It is
 syntax rather than a selector: it is not listed among the selectors, and
 it asks nothing of its descriptions. Text exercising or describing every
 selector of a provider, like
-[`design/lints-its-providers-against-resources.md`](nexus:filesystem.file),
-uses it so that adding a selector fails [`nexus lint`](nexus:nexus.lint) until the text follows.
+[`design/lints-its-providers-against-resources.md`](lynk:filesystem.file),
+uses it so that adding a selector fails [`lynk lint`](lynk:lynk.lint) until the text follows.
 Nothing requires a provider to be mapped anywhere.
 
 Bodies may nest lists and links, so the links exercising a selector sit

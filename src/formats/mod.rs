@@ -15,14 +15,14 @@ pub trait Format {
     /// Also the name of its provider, if it has one.
     fn name(&self) -> &'static str;
     fn extensions(&self) -> &'static [&'static str];
-    /// Reads a file at [`path`](nexus:rust.argument), relative to the root,
+    /// Reads a file at [`path`](lynk:rust.argument), relative to the root,
     /// as far as links need it, links included.
     fn read(&self, path: PathBuf, text: String) -> LinkedDocument;
 }
 
 pub const FORMATS: &[&dyn Format] = &[&markdown::Markdown, &rust::Rust, &wit::Wit, &protobuf::Protobuf];
 
-/// The format of the file at [`path`](nexus:rust.argument), by its
+/// The format of the file at [`path`](lynk:rust.argument), by its
 /// extension.
 pub fn of(path: &Path) -> Option<&'static dyn Format> {
     let extension = path.extension()?.to_str()?;

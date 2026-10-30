@@ -1,19 +1,19 @@
-# Nexus prefers Markdown links in every format
+# Lynk prefers Markdown links in every format
 
 ## Decision
 
 Each format decides how links are written in its files, since it is the
 format that finds them when reading a file
-([`nexus::formats::Format::read`](nexus:rust.item);
-[Decision](nexus:markdown.section
+([`lynk::formats::Format::read`](lynk:rust.item);
+[Decision](lynk:markdown.section
   (design/splits-languages-into-formats-and-providers.md))). A format writes
 them as Markdown links and maps, as
-[Link syntax](nexus:markdown.section (README.md)) describes, whenever its
+[Link syntax](lynk:markdown.section (README.md)) describes, whenever its
 prose can be read as Markdown: Markdown files, and comments and other
 prose that their own tools already render as Markdown, such as Rust's and
 WIT's, or protobuf's, which its documentation generators commonly render
 as Markdown; such comments are all read by the same reader
-([`nexus::formats::markdown::comments::read`](nexus:rust.item)). Only where Markdown would be foreign to the language, or cannot be
+([`lynk::formats::markdown::comments::read`](lynk:rust.item)). Only where Markdown would be foreign to the language, or cannot be
 written at all, does a format define a syntax of its own, and that syntax
 still yields the same selector name, arguments and body.
 

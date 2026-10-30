@@ -1,4 +1,4 @@
-//! A range of a file as nexus prints it: `path:line:column`, followed by
+//! A range of a file as lynk prints it: `path:line:column`, followed by
 //! `-line:column` when it ends elsewhere.
 
 pub mod position;
@@ -32,7 +32,7 @@ impl Span {
 }
 
 /// The path and start of a span, all of it but what follows
-/// [the last dash](nexus:rust.comment) when it ends elsewhere.
+/// [the last dash](lynk:rust.comment) when it ends elsewhere.
 fn parse_start(text: &str) -> Option<(PathBuf, Position)> {
     let (rest, column) = text.rsplit_once(':')?;
     let (path, line) = rest.rsplit_once(':')?;

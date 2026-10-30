@@ -1,6 +1,6 @@
 //! The messages of protobuf files and their fields, read with `protox-parse`
 //! one file at a time; its design record's
-//! [Decision](nexus:markdown.section
+//! [Decision](lynk:markdown.section
 //! (design/reads-protobuf-with-protox-parse.md)) says why.
 
 use std::path::{Path, PathBuf};
@@ -86,9 +86,9 @@ impl Query for ProtobufQuery {
     }
 }
 
-/// The message called [`name`](nexus:rust.argument) in the protobuf file
-/// at [`file`](nexus:rust.argument), relative to
-/// [`root`](nexus:rust.argument): its span, from its keyword to its closing
+/// The message called [`name`](lynk:rust.argument) in the protobuf file
+/// at [`file`](lynk:rust.argument), relative to
+/// [`root`](lynk:rust.argument): its span, from its keyword to its closing
 /// brace, and the names of its fields, those of its `oneof`s included. A
 /// nested message is named after the messages it is nested in,
 /// `<outer>.<message>`, without the package.
@@ -164,7 +164,7 @@ mod tests {
     }
 
     fn write_file(name: &str) -> PathBuf {
-        let root = std::env::temp_dir().join(format!("nexus-protobuf-{name}-{}", std::process::id()));
+        let root = std::env::temp_dir().join(format!("lynk-protobuf-{name}-{}", std::process::id()));
         let path = root.join("proto/window.proto");
         std::fs::create_dir_all(path.parent().unwrap()).unwrap();
         std::fs::write(
@@ -207,7 +207,7 @@ mod tests {
     fn a_map_of_fields_takes_a_file_a_message_and_a_body() {
         let (query, members) = read_first_link(
             "test.md",
-            "<!-- nexus protobuf.map-field proto/window.proto Ok -->\n- view_id: its view\n<!-- /nexus -->\n",
+            "<!-- lynk protobuf.map-field proto/window.proto Ok -->\n- view_id: its view\n<!-- /lynk -->\n",
         )
         .unwrap();
         assert_query(query.as_ref(), &ProtobufQuery::MapField {
