@@ -158,14 +158,6 @@ writes them, starting with the crate:
 - `lynk.export`: no arguments; its command writing a directory without its links
 <!-- /lynk -->
 
-Selectors planned so far:
-
-- `rust.partial-map-variant <enum>`; `rust.partial-map-field <struct>`.
-- `protobuf.message-field <file> <message> <field>`;
-  `protobuf.partial-map-field <file> <message>`;
-  `protobuf.map-message` / `protobuf.partial-map-message <file>`.
-- `filesystem.partial-map-entry <directory>`.
-
 ---
 
 <p align="center"><sub>꧁∙·▫ₒₒ▫ᵒᴼᵒ▫ₒₒ▫꧁ project maintained by <a href="https://github.com/vE5li/repository-manager"><code>repository-manager</code></a> ꧂▫ₒₒ▫ᵒᴼᵒ▫ₒₒ▫·∙꧂</sub></p>
