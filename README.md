@@ -35,6 +35,13 @@ is the nearest directory up holding `.jj` or `.git`.
   words, so it also finds what nobody linked yet. With `TYPESAFE_API_KEY`
   set, its best word matches are ordered by how relevant they are, shown
   as a probability.
+- [`export`](lynk:lynk.export) writes the files of a directory of the
+  repository, given relative to its root, to an output directory, given
+  as an absolute path outside it, as the readers of their rendered text
+  see them: links' text and maps' bodies stay, the rest of their syntax
+  and the lines left holding nothing else go. Files no format reads are
+  copied as they are; ignored and hidden ones are left out, as everywhere
+  else.
 
 [`where`](lynk:lynk.where) and [`ref`](lynk:lynk.ref) take a
 `<provider.selector>` and its arguments. On the command line nothing is
@@ -136,6 +143,7 @@ writes them, starting with the crate:
 - lynk.where: no arguments; its command resolving a link
 - lynk.ref: no arguments; its command listing the links to a target
 - lynk.find: no arguments; its command searching the documentation by words
+- lynk.export: no arguments; its command writing a directory without its links
 <!-- /lynk -->
 
 Selectors planned so far:

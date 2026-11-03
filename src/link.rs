@@ -62,6 +62,9 @@ pub struct Found {
     /// Ordered by where they start, a link holding others first.
     pub links: Vec<Link>,
     pub errors: Vec<SyntaxError>,
+    /// What only the links are written in, in the document's prose: the
+    /// text without it is what a reader of the rendered text sees.
+    pub syntax: Vec<Range<usize>>,
 }
 
 impl Found {

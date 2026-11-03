@@ -7,7 +7,7 @@ use std::ops::Range;
 use std::path::PathBuf;
 
 use super::find_links;
-use super::parse::{self, MarkdownLink};
+use super::parse::{self, Definition, MarkdownLink};
 use crate::document::{Document, Unit};
 use crate::workspace::LinkedDocument;
 
@@ -40,7 +40,9 @@ pub fn read(format: &'static str, path: PathBuf, text: String, lines: &[CommentL
         headings: Vec::new(),
         units,
     };
-    LinkedDocument::new(document, |document| find_links(document, &comments.links))
+    LinkedDocument::new(document, |document| {
+        find_links(document, &comments.links, &comments.definitions)
+    })
 }
 
 /// Each line of a block comment, the comment at
@@ -101,6 +103,8 @@ struct CommentText {
     code_ranges: Vec<Range<usize>>,
     /// The Markdown links inside the comments.
     links: Vec<MarkdownLink>,
+    /// The reference link definitions inside the comments.
+    definitions: Vec<Definition>,
     /// Each run of comment lines on consecutive lines, from the start of
     /// its first line's text to the end of its last.
     blocks: Vec<Range<usize>>,
@@ -114,16 +118,19 @@ fn comment_text(source: &str, lines: &[CommentLine]) -> CommentText {
     let blocks = blocks(lines);
     let mut code_ranges = Vec::new();
     let mut links = Vec::new();
+    let mut definitions = Vec::new();
     for block in &blocks {
-        let (block_code_ranges, block_links) = parse_block(source, block);
-        code_ranges.extend(block_code_ranges);
-        links.extend(block_links);
+        let parsed = parse_block(source, block);
+        code_ranges.extend(parsed.code_ranges);
+        links.extend(parsed.links);
+        definitions.extend(parsed.definitions);
     }
     CommentText {
         // Only whole characters were copied and only ASCII blanked out.
         text: String::from_utf8(text).expect("blanking keeps the text valid UTF-8"),
         code_ranges,
         links,
+        definitions,
         blocks: blocks
             .iter()
             .map(|block| block[0].range.start..block[block.len() - 1].range.end)
@@ -147,10 +154,10 @@ fn blocks(lines: &[CommentLine]) -> Vec<&[CommentLine]> {
     blocks
 }
 
-/// The block's code ranges and links in the source: its lines, stripped of
-/// the indentation they share, are parsed as Markdown, and the ranges found
-/// are mapped back line by line.
-fn parse_block(source: &str, block: &[CommentLine]) -> (Vec<Range<usize>>, Vec<MarkdownLink>) {
+/// The block parsed, its ranges in the source: its lines, stripped of the
+/// indentation they share, are parsed as Markdown, and the ranges found are
+/// mapped back line by line. Headings are left out.
+fn parse_block(source: &str, block: &[CommentLine]) -> parse::Parsed {
     let indentation = block
         .iter()
         .map(|line| &source[line.range.clone()])
@@ -173,7 +180,13 @@ fn parse_block(source: &str, block: &[CommentLine]) -> (Vec<Range<usize>>, Vec<M
         let (markdown_start, source_start) = line_starts[line_index];
         source_start + markdown_offset - markdown_start
     };
-    let to_source_range = |range: Range<usize>| to_source(range.start)..to_source(range.end.saturating_sub(1)) + 1;
+    let to_source_range = |range: Range<usize>| {
+        let start = to_source(range.start);
+        if range.is_empty() {
+            return start..start;
+        }
+        start..to_source(range.end - 1) + 1
+    };
     let parsed = parse::parse(&markdown_text);
     let code_ranges = parsed.code_ranges.into_iter().map(to_source_range).collect();
     let links = parsed
@@ -181,10 +194,24 @@ fn parse_block(source: &str, block: &[CommentLine]) -> (Vec<Range<usize>>, Vec<M
         .into_iter()
         .map(|link| MarkdownLink {
             range: to_source_range(link.range),
+            text_range: to_source_range(link.text_range),
             ..link
         })
         .collect();
-    (code_ranges, links)
+    let definitions = parsed
+        .definitions
+        .into_iter()
+        .map(|definition| Definition {
+            range: to_source_range(definition.range),
+            ..definition
+        })
+        .collect();
+    parse::Parsed {
+        code_ranges,
+        headings: Vec::new(),
+        links,
+        definitions,
+    }
 }
 
 #[cfg(test)]

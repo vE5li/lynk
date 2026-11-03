@@ -1,5 +1,6 @@
 mod command;
 mod document;
+mod export;
 mod find;
 mod formats;
 mod link;
@@ -9,6 +10,7 @@ mod relevance;
 mod workspace;
 
 use std::collections::HashSet;
+use std::path::PathBuf;
 use std::process::ExitCode;
 
 use clap::Parser;
@@ -29,21 +31,41 @@ fn main() -> ExitCode {
 }
 
 fn run(cli: Cli) -> Result<ExitCode, String> {
-    let root = match cli.root {
-        Some(root) => root,
-        None => {
-            let current_directory = std::env::current_dir().map_err(|error| error.to_string())?;
-            find_root(&current_directory).ok_or("not inside a repository; pass --root")?
-        }
-    };
-    let workspace = Workspace::load(root).map_err(|error| error.to_string())?;
-
+    let root = cli.root;
     match cli.command {
-        Command::Lint => Ok(lint(&workspace)),
-        Command::Where(arguments) => Ok(print_where(&workspace, query_from_command_line(arguments)?.as_ref())),
-        Command::Ref(arguments) => Ok(print_references(&workspace, query_from_command_line(arguments)?.as_ref())),
-        Command::Find { words } => Ok(print_found(&workspace, &words.join(" "))),
+        Command::Lint => Ok(lint(&load_workspace(root)?)),
+        Command::Where(arguments) => Ok(print_where(
+            &load_workspace(root)?,
+            query_from_command_line(arguments)?.as_ref(),
+        )),
+        Command::Ref(arguments) => Ok(print_references(
+            &load_workspace(root)?,
+            query_from_command_line(arguments)?.as_ref(),
+        )),
+        Command::Find { words } => Ok(print_found(&load_workspace(root)?, &words.join(" "))),
+        // Reads only the files it exports, so it needs the root but not the
+        // whole repository.
+        Command::Export { directory, output } => {
+            export::export_directory(&find_root_or(root)?, &directory, &output)?;
+            Ok(ExitCode::SUCCESS)
+        }
     }
+}
+
+/// The repository at [`root`](lynk:rust.argument), by default the one the
+/// current directory is in.
+fn load_workspace(root: Option<PathBuf>) -> Result<Workspace, String> {
+    Workspace::load(find_root_or(root)?).map_err(|error| error.to_string())
+}
+
+/// The [`root`](lynk:rust.argument) given, by default that of the
+/// repository the current directory is in.
+fn find_root_or(root: Option<PathBuf>) -> Result<PathBuf, String> {
+    if let Some(root) = root {
+        return Ok(root);
+    }
+    let current_directory = std::env::current_dir().map_err(|error| error.to_string())?;
+    Ok(find_root(&current_directory).ok_or("not inside a repository; pass --root")?)
 }
 
 fn query_from_command_line(query: QueryArguments) -> Result<Box<dyn Query>, String> {

@@ -3,7 +3,7 @@
 
 use std::ops::Range;
 
-use super::parse::MarkdownLink;
+use super::parse::{Definition, MarkdownLink};
 use crate::document::Document;
 use crate::link::{Found, Link, SyntaxError};
 
@@ -16,12 +16,20 @@ const MAP_KEYWORD: &str = "lynk";
 const MAP_CLOSING: &str = "<!-- /lynk -->";
 
 /// Every link of the document's prose outside code, plus what failed to
-/// parse. [`markdown_links`](lynk:rust.argument) are those Markdown found
-/// in the prose, whatever their destination.
-pub fn find(document: &Document, markdown_links: &[MarkdownLink]) -> Found {
+/// parse. [`markdown_links`](lynk:rust.argument) and
+/// [`definitions`](lynk:rust.argument) are the links and reference
+/// definitions Markdown found in the prose, whatever their destination.
+pub fn find(document: &Document, markdown_links: &[MarkdownLink], definitions: &[Definition]) -> Found {
     let mut found = Found::default();
     find_markdown_links(markdown_links, &mut found);
     find_maps(document, &mut found);
+    // Rendering hides every definition; those of links are their syntax.
+    found.syntax.extend(
+        definitions
+            .iter()
+            .filter(|definition| definition.destination.starts_with(SCHEME))
+            .map(|definition| definition.range.clone()),
+    );
     found.finish()
 }
 
@@ -39,6 +47,10 @@ fn find_markdown_links(markdown_links: &[MarkdownLink], found: &mut Found) {
             });
             continue;
         }
+        // Everything around its text: the brackets, and its destination or
+        // reference.
+        found.syntax.push(markdown_link.range.start..markdown_link.text_range.start);
+        found.syntax.push(markdown_link.text_range.end..markdown_link.range.end);
         found.links.push(Link {
             selector_name: selector_name.to_owned(),
             arguments: markdown_link.title.clone().unwrap_or_default(),
@@ -59,6 +71,8 @@ fn find_maps(document: &Document, found: &mut Found) {
         /// `None` for one reported already, closed without a link.
         selector_name: Option<String>,
         arguments: Range<usize>,
+        /// The end of its opening comment.
+        opening_end: usize,
         body_start: usize,
     }
     let text = &document.prose;
@@ -76,14 +90,22 @@ fn find_maps(document: &Document, found: &mut Found) {
         let trimmed = line.trim();
         if trimmed == MAP_CLOSING {
             match open.pop() {
-                Some(map) => found.links.extend(map.selector_name.map(|selector_name| Link {
-                    selector_name,
-                    arguments: text[map.arguments].to_owned(),
-                    last_argument: None,
-                    body: Some(map.body_start.min(current_start)..current_start),
-                    nested: Vec::new(),
-                    range: map.start..start + trimmed.len(),
-                })),
+                Some(map) => {
+                    let Some(selector_name) = map.selector_name else {
+                        continue;
+                    };
+                    // Its comments, which rendering hides, leaving its body.
+                    found.syntax.push(map.start..map.opening_end);
+                    found.syntax.push(start..start + trimmed.len());
+                    found.links.push(Link {
+                        selector_name,
+                        arguments: text[map.arguments].to_owned(),
+                        last_argument: None,
+                        body: Some(map.body_start.min(current_start)..current_start),
+                        nested: Vec::new(),
+                        range: map.start..start + trimmed.len(),
+                    });
+                }
                 None => found.errors.push(SyntaxError {
                     message: format!("`{MAP_CLOSING}` closes no map"),
                     offset: start,
@@ -136,6 +158,7 @@ fn find_maps(document: &Document, found: &mut Found) {
             start,
             selector_name: valid.then(|| selector_name.to_owned()),
             arguments: name_end..comment_end,
+            opening_end: after_comment,
             body_start: line_start.min(text.len()),
         });
     }

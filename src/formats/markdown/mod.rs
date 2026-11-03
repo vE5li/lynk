@@ -38,7 +38,7 @@ impl Format for Markdown {
             units: Vec::new(),
         };
         document.units = units(&document);
-        LinkedDocument::new(document, |document| find_links(document, &parsed.links))
+        LinkedDocument::new(document, |document| find_links(document, &parsed.links, &parsed.definitions))
     }
 }
 

@@ -18,7 +18,7 @@ impl Provider for Lynk {
     }
 
     fn selectors(&self) -> &'static [&'static str] {
-        &["selectors", "self", "lint", "where", "ref", "find"]
+        &["selectors", "self", "lint", "where", "ref", "find", "export"]
     }
 
     fn shape(&self, selector: &str) -> Shape {

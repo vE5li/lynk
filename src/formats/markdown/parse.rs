@@ -13,6 +13,14 @@ pub struct Parsed {
     pub code_ranges: Vec<Range<usize>>,
     pub headings: Vec<Heading>,
     pub links: Vec<MarkdownLink>,
+    /// The definitions of reference links, used or not.
+    pub definitions: Vec<Definition>,
+}
+
+/// A reference link's definition, `[<label>]: <destination>`.
+pub struct Definition {
+    pub range: Range<usize>,
+    pub destination: String,
 }
 
 /// A Markdown link, inline or by reference, with its destination and title
@@ -25,6 +33,8 @@ pub struct MarkdownLink {
     pub title: Option<String>,
     /// What the reader sees, code spans unwrapped and whitespace collapsed.
     pub text: String,
+    /// Where the text is written, as it is written, inside the brackets.
+    pub text_range: Range<usize>,
 }
 
 pub fn parse(text: &str) -> Parsed {
@@ -32,11 +42,22 @@ pub fn parse(text: &str) -> Parsed {
         code_ranges: Vec::new(),
         headings: Vec::new(),
         links: Vec::new(),
+        definitions: Vec::new(),
     };
     let mut open_heading: Option<Heading> = None;
     let mut open_link: Option<MarkdownLink> = None;
+    // The events inside the open link, which make up its text.
+    let mut link_text_range: Option<Range<usize>> = None;
     let mut code_block_start = None;
-    for (event, range) in Parser::new(text).into_offset_iter() {
+    let mut events = Parser::new(text).into_offset_iter();
+    for (event, range) in events.by_ref() {
+        let inside_link = open_link.is_some() && !matches!(event, Event::End(TagEnd::Link));
+        if inside_link {
+            link_text_range = Some(match link_text_range.take() {
+                Some(text_range) => text_range.start.min(range.start)..text_range.end.max(range.end),
+                None => range.clone(),
+            });
+        }
         let content = match &event {
             Event::Text(content) | Event::Code(content) => Some(content.as_ref()),
             Event::SoftBreak | Event::HardBreak => Some(" "),
@@ -61,6 +82,7 @@ pub fn parse(text: &str) -> Parsed {
             Event::End(TagEnd::Heading(_)) => parsed.headings.extend(open_heading.take()),
             Event::Start(Tag::Link { dest_url, title, .. }) => {
                 open_link = Some(MarkdownLink {
+                    text_range: range.start + 1..range.start + 1,
                     range,
                     destination: dest_url.into_string(),
                     title: Some(title.into_string()).filter(|title| !title.is_empty()),
@@ -70,6 +92,7 @@ pub fn parse(text: &str) -> Parsed {
             Event::End(TagEnd::Link) => {
                 if let Some(mut link) = open_link.take() {
                     link.text = link.text.split_whitespace().collect::<Vec<_>>().join(" ");
+                    link.text_range = link_text_range.take().unwrap_or(link.text_range);
                     parsed.links.push(link);
                 }
             }
@@ -83,5 +106,13 @@ pub fn parse(text: &str) -> Parsed {
             _ => {}
         }
     }
+    parsed.definitions = events
+        .reference_definitions()
+        .iter()
+        .map(|(_, definition)| Definition {
+            range: definition.span.clone(),
+            destination: definition.dest.to_string(),
+        })
+        .collect();
     parsed
 }

@@ -30,6 +30,17 @@ pub enum Command {
         #[arg(required = true, value_name = "words")]
         words: Vec<String>,
     },
+    /// Write the files of a directory as the readers of their rendered text
+    /// see them, without the syntax of their links, to an output directory;
+    /// files no format reads are copied as they are.
+    Export {
+        /// Relative to the repository root.
+        #[arg(value_name = "directory")]
+        directory: PathBuf,
+        /// An absolute path outside the directory.
+        #[arg(value_name = "output")]
+        output: PathBuf,
+    },
 }
 
 /// A link written on the command line.

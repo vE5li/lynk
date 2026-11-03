@@ -1,3 +1,4 @@
+use std::ops::Range;
 use std::path::{Path, PathBuf};
 
 use crate::document::Document;
@@ -8,6 +9,8 @@ pub struct LinkedDocument {
     pub document: Document,
     pub links: Vec<Link>,
     pub syntax_errors: Vec<SyntaxError>,
+    /// What only its links are written in.
+    pub link_syntax: Vec<Range<usize>>,
 }
 
 impl LinkedDocument {
@@ -19,6 +22,7 @@ impl LinkedDocument {
             document,
             links: found.links,
             syntax_errors: found.errors,
+            link_syntax: found.syntax,
         }
     }
 }
@@ -32,18 +36,12 @@ pub struct Workspace {
 impl Workspace {
     pub fn load(root: PathBuf) -> std::io::Result<Self> {
         let mut documents = Vec::new();
-        // Respects ignore files and skips hidden entries; symlinks are skipped
-        // so a file reachable under two names is read once.
-        for entry in ignore::WalkBuilder::new(&root).build() {
-            let entry = entry.map_err(std::io::Error::other)?;
-            let Some(format) = formats::of(entry.path()) else {
+        for path in files(&root)? {
+            let Some(format) = formats::of(&path) else {
                 continue;
             };
-            if !entry.file_type().is_some_and(|file_type| file_type.is_file()) {
-                continue;
-            }
-            let text = std::fs::read_to_string(entry.path())?;
-            let relative_path = entry.path().strip_prefix(&root).unwrap_or(entry.path()).to_owned();
+            let text = std::fs::read_to_string(&path)?;
+            let relative_path = path.strip_prefix(&root).unwrap_or(&path).to_owned();
             documents.push(format.read(relative_path, text));
         }
         documents.sort_by(|first, second| first.document.path.cmp(&second.document.path));
@@ -53,6 +51,21 @@ impl Workspace {
     pub fn document(&self, path: &Path) -> Option<&LinkedDocument> {
         self.documents.iter().find(|linked| linked.document.path == path)
     }
+}
+
+/// Every file inside [`directory`](lynk:rust.argument), at any depth, that
+/// belongs to the repository: ignore files are respected and hidden entries
+/// skipped. Symlinks are skipped too, so a file reachable under two names
+/// is found once.
+pub fn files(directory: &Path) -> std::io::Result<Vec<PathBuf>> {
+    let mut files = Vec::new();
+    for entry in ignore::WalkBuilder::new(directory).build() {
+        let entry = entry.map_err(std::io::Error::other)?;
+        if entry.file_type().is_some_and(|file_type| file_type.is_file()) {
+            files.push(entry.into_path());
+        }
+    }
+    Ok(files)
 }
 
 /// The nearest ancestor of [`start`](lynk:rust.argument) holding a `.jj` or
