@@ -30,6 +30,13 @@ is the nearest directory up holding `.jj` or `.git`.
   at, with their first line.
 - [`backlinks`](lynk:lynk.backlinks) lists every place linking to the
   spans a link points at.
+- [`affected`](lynk:lynk.affected) lists every link pointing at lines a
+  unified diff changes, read from a file or standard input, such as
+  `jj diff --git | lynk affected`: the text to reread after a change.
+  Lines are counted in the files as the diff leaves them, so it is meant
+  for the diff leading to the files as they are. Lines removed with none
+  added in their place change the lines on either side; a link to a whole
+  file or directory points at every change inside it.
 - [`context`](lynk:lynk.context) lists the parts of the documentation and the
   comments matching a few words, best first. Unlike links, it matches
   words, so it also finds what nobody linked yet. With `TYPESAFE_API_KEY`
@@ -142,6 +149,7 @@ writes them, starting with the crate:
 - lynk.lint: no arguments; its command checking every link
 - lynk.resolve: no arguments; its command resolving a link
 - lynk.backlinks: no arguments; its command listing the links to a target
+- lynk.affected: no arguments; its command listing the links to what a diff changes
 - lynk.context: no arguments; its command searching the documentation by words
 - lynk.export: no arguments; its command writing a directory without its links
 <!-- /lynk -->

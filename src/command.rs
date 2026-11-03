@@ -25,6 +25,13 @@ pub enum Command {
     Resolve(QueryArguments),
     /// Print the links pointing at the places a link points at.
     Backlinks(QueryArguments),
+    /// Print the links pointing at lines a unified diff changes, in the
+    /// files as it leaves them.
+    Affected {
+        /// The diff, by default read from standard input.
+        #[arg(value_name = "diff")]
+        diff: Option<PathBuf>,
+    },
     /// Print the parts of the documentation about some words, best first.
     Context {
         #[arg(required = true, value_name = "words")]

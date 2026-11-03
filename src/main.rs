@@ -1,6 +1,7 @@
 mod command;
-mod document;
 mod context;
+mod diff;
+mod document;
 mod export;
 mod formats;
 mod link;
@@ -10,6 +11,7 @@ mod relevance;
 mod workspace;
 
 use std::collections::HashSet;
+use std::io::Read;
 use std::path::PathBuf;
 use std::process::ExitCode;
 
@@ -42,6 +44,10 @@ fn run(cli: Cli) -> Result<ExitCode, String> {
             &load_workspace(root)?,
             query_from_command_line(arguments)?.as_ref(),
         )),
+        Command::Affected { diff } => {
+            let changes = diff::Changes::parse(&read_diff(diff)?)?;
+            Ok(print_affected(&load_workspace(root)?, &changes))
+        }
         Command::Context { words } => Ok(print_context(&load_workspace(root)?, &words.join(" "))),
         // Reads only the files it exports, so it needs the root but not the
         // whole repository.
@@ -145,13 +151,33 @@ fn print_resolved(workspace: &Workspace, query: &dyn Query) -> ExitCode {
 
 fn print_backlinks(workspace: &Workspace, query: &dyn Query) -> ExitCode {
     let targets: HashSet<Span> = query.resolve(workspace).into_iter().collect();
+    print_links_to(workspace, |target| targets.contains(target))
+}
+
+/// The diff at [`path`](lynk:rust.argument), by default standard input.
+fn read_diff(path: Option<PathBuf>) -> Result<String, String> {
+    let Some(path) = path else {
+        let mut text = String::new();
+        std::io::stdin().read_to_string(&mut text).map_err(|error| error.to_string())?;
+        return Ok(text);
+    };
+    std::fs::read_to_string(&path).map_err(|error| format!("{}: {error}", path.display()))
+}
+
+fn print_affected(workspace: &Workspace, changes: &diff::Changes) -> ExitCode {
+    print_links_to(workspace, |target| changes.touch(target))
+}
+
+/// Prints every link pointing at a span [`is_target`](lynk:rust.argument)
+/// accepts, failing when there is none.
+fn print_links_to(workspace: &Workspace, is_target: impl Fn(&Span) -> bool) -> ExitCode {
     let mut found = false;
     for linked in &workspace.documents {
         for link in &linked.links {
             let Ok((link_query, _)) = query_of_link(linked, link) else {
                 continue;
             };
-            if !link_query.resolve(workspace).iter().any(|target| targets.contains(target)) {
+            if !link_query.resolve(workspace).iter().any(&is_target) {
                 continue;
             }
             found = true;

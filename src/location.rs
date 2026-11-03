@@ -60,7 +60,9 @@ impl<'text> LineIndex<'text> {
     }
 }
 
-/// A range of a file, with paths relative to the repository root.
+/// A range of a file, with paths relative to the repository root; one
+/// starting and ending at the file's first character stands for the whole
+/// file, or directory.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Span {
     pub path: PathBuf,
@@ -76,6 +78,10 @@ impl Span {
             start,
             end: start,
         }
+    }
+
+    pub fn is_whole(&self) -> bool {
+        *self == Self::whole_file(&self.path)
     }
 }
 
