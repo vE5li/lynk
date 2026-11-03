@@ -8,6 +8,8 @@ mod literals;
 
 use std::path::PathBuf;
 
+use heck::ToSnakeCase;
+
 use crate::formats::rust::NAME;
 use crate::formats::{self};
 use crate::link::{Member, Shape};
@@ -24,7 +26,16 @@ impl Provider for Rust {
     }
 
     fn selectors(&self) -> &'static [&'static str] {
-        &["module", "item", "literal", "argument", "comment", "map-variant", "map-field"]
+        &[
+            "module",
+            "item",
+            "literal",
+            "argument",
+            "comment",
+            "map-variant",
+            "map-variant-snake-case",
+            "map-field",
+        ]
     }
 
     fn shape(&self, selector: &str) -> Shape {
@@ -56,6 +67,10 @@ impl Provider for Rust {
                 [path] => RustQuery::MapVariant { path: (*path).to_owned() },
                 _ => return Err(format!("`{selector_name}` takes an enum path")),
             },
+            "map-variant-snake-case" => match arguments {
+                [path] => RustQuery::MapVariantSnakeCase { path: (*path).to_owned() },
+                _ => return Err(format!("`{selector_name}` takes an enum path")),
+            },
             "map-field" => match arguments {
                 [path] => RustQuery::MapField { path: (*path).to_owned() },
                 _ => return Err(format!("`{selector_name}` takes a struct or variant path")),
@@ -68,7 +83,9 @@ impl Provider for Rust {
                     ([_], _) => {
                         return Err(format!("`{selector_name}` takes a file outside a Rust file"));
                     }
-                    _ => return Err(format!("`{selector_name}` takes an optional file and a text")),
+                    _ => {
+                        return Err(format!("`{selector_name}` takes an optional file and a text"));
+                    }
                 };
                 RustQuery::Comment {
                     file,
@@ -134,6 +151,9 @@ enum RustQuery {
     Comment { file: Option<PathBuf>, text: String },
     /// The variants of an enum, by its path, as complete map.
     MapVariant { path: String },
+    /// The variants of an enum, by its path, named in snake case, as
+    /// complete map.
+    MapVariantSnakeCase { path: String },
     /// The named fields of a struct or variant, by its path, as complete
     /// map.
     MapField { path: String },
@@ -145,6 +165,10 @@ impl RustQuery {
     fn map_targets(&self, workspace: &Workspace) -> Vec<(Span, Vec<String>)> {
         match self {
             Self::MapVariant { path } => items::find_variants(&workspace.root, path),
+            Self::MapVariantSnakeCase { path } => items::find_variants(&workspace.root, path)
+                .into_iter()
+                .map(|(span, names)| (span, names.iter().map(|name| name.to_snake_case()).collect()))
+                .collect(),
             Self::MapField { path } => items::find_fields(&workspace.root, path),
             _ => Vec::new(),
         }
@@ -163,7 +187,9 @@ impl Query for RustQuery {
                 RustFunction::Enclosing { file, line } => items::find_enclosing_argument(root, file, *line, argument),
             },
             Self::Comment { file, text } => comments::find_comments(workspace, file.as_deref(), text),
-            Self::MapVariant { .. } | Self::MapField { .. } => self.map_targets(workspace).into_iter().map(|(span, _)| span).collect(),
+            Self::MapVariant { .. } | Self::MapVariantSnakeCase { .. } | Self::MapField { .. } => {
+                self.map_targets(workspace).into_iter().map(|(span, _)| span).collect()
+            }
         }
     }
 
@@ -281,6 +307,12 @@ mod tests {
         assert_eq!(members[0].name, "x");
         assert!(read_first_link("test.md", "[`a::Event`](lynk:rust.map-variant)").is_err());
         assert!(Rust.query("map-variant", &[], None).is_err());
+        assert_query(
+            Rust.query("map-variant-snake-case", &["a::Event"], None).unwrap().as_ref(),
+            &RustQuery::MapVariantSnakeCase {
+                path: "a::Event".to_owned(),
+            },
+        );
     }
 
     #[test]

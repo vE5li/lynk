@@ -25,30 +25,30 @@ documentation whole, source code only in its comments.
 `lynk [--root <directory>] <command>`; without `--root`, the repository
 is the nearest directory up holding `.jj` or `.git`.
 
-- [`lint`](lynk:lynk.lint) checks every link of the repository.
-- [`resolve`](lynk:lynk.resolve) resolves a link to the spans it points
-  at, with their first line.
-- [`backlinks`](lynk:lynk.backlinks) lists every place linking to the
-  spans a link points at.
-- [`affected`](lynk:lynk.affected) lists every link pointing at lines a
-  unified diff changes, read from a file or standard input, such as
+<!-- lynk rust.map-variant-snake-case lynk::command::Command -->
+- `lint`: checks every link of the repository.
+- `resolve`: resolves a link to the spans it points at, with their first
+  line.
+- `backlinks`: lists every place linking to the spans a link points at.
+- `affected`: lists every link pointing at lines a unified diff changes,
+  read from a file or standard input, such as
   `jj diff --git | lynk affected`: the text to reread after a change.
   Lines are counted in the files as the diff leaves them, so it is meant
   for the diff leading to the files as they are. Lines removed with none
   added in their place change the lines on either side; a link to a whole
   file or directory points at every change inside it.
-- [`context`](lynk:lynk.context) lists the parts of the documentation and the
-  comments matching a few words, best first. Unlike links, it matches
-  words, so it also finds what nobody linked yet. With `TYPESAFE_API_KEY`
-  set, its best word matches are ordered by how relevant they are, shown
-  as a probability.
-- [`export`](lynk:lynk.export) writes the files of a directory of the
-  repository, given relative to its root, to an output directory, given
-  as an absolute path outside it, as the readers of their rendered text
-  see them: links' text and maps' bodies stay, the rest of their syntax
-  and the lines left holding nothing else go. Files no format reads are
-  copied as they are; ignored and hidden ones are left out, as everywhere
-  else.
+- `context`: lists the parts of the documentation and the comments
+  matching a few words, best first. Unlike links, it matches words, so it
+  also finds what nobody linked yet. With `TYPESAFE_API_KEY` set, its best
+  word matches are ordered by how relevant they are, shown as a
+  probability.
+- `export`: writes the files of a directory of the repository, given
+  relative to its root, to an output directory, given as an absolute path
+  outside it, as the readers of their rendered text see them: links' text
+  and maps' bodies stay, the rest of their syntax and the lines left
+  holding nothing else go. Files no format reads are copied as they are;
+  ignored and hidden ones are left out, as everywhere else.
+<!-- /lynk -->
 
 [`resolve`](lynk:lynk.resolve) and [`backlinks`](lynk:lynk.backlinks)
 take a `<provider.selector>` and its arguments. On the command line
@@ -141,6 +141,7 @@ writes them, starting with the crate:
 - `rust.argument`: `[function path] <argument>`, an argument of a function, `self` for its receiver; a method's path goes through its type or trait
 - `rust.comment`: `[file] "<text>"`, the comments holding the text, a run of comment lines on consecutive lines being one comment whose lines read as one text; the links in it are left out, so a link never matches its own comment
 - `rust.map-variant`: `<enum path>`, its variants; when its definitions list different variants, or in another order, ordered by their names' bytes
+- `rust.map-variant-snake-case`: `<enum path>`, its variants named in snake case, `NotStarted` as `not_started`, ordered as `rust.map-variant` orders variants
 - `rust.map-field`: `<struct or variant path>`, the fields of a struct or variant declaring them by name, ordered as `rust.map-variant` orders variants; a variant's path goes through its enum
 - `wit.function`: `<file> <function>`, the functions with that name in its interfaces and worlds; a resource's as `<resource>.<function>`, its constructor as `<resource>.constructor`
 - `protobuf.message`: `<file> <message>`, from its keyword to its closing brace; a nested message's as `<outer>.<message>`, without the package

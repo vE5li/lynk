@@ -62,8 +62,8 @@ modules is linked here, one link per way Rust declares a module, along
 with some of its items and arguments of its functions, one link per way
 of naming the item or function, the values of its constants, one link per
 way of naming the constant, some of its comments, one link per
-way of finding them, and the members of an enum and of a struct and a
-variant declaring fields by name:
+way of finding them, and the members of an enum, its variants also named
+in snake case, and of a struct and a variant declaring fields by name:
 
 <!-- lynk rust.* -->
 - module:
@@ -105,8 +105,13 @@ variant declaring fields by name:
     them.
 - map-variant:
   <!-- lynk rust.map-variant lynk_client::run::Error -->
-  - Start: a variant holding a value
+  - NotStarted: a variant holding a value
   - Failed: a variant declaring its fields by name
+  <!-- /lynk -->
+- map-variant-snake-case:
+  <!-- lynk rust.map-variant-snake-case lynk_client::run::Error -->
+  - not_started: a name of several words
+  - failed: a name of one word
   <!-- /lynk -->
 - map-field:
   - Of a struct:

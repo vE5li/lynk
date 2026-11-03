@@ -93,7 +93,9 @@ impl fmt::Display for Literal {
     fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
         match self {
             Self::Text(text) => write!(formatter, "{text}"),
-            Self::Integer { negative, digits } => write!(formatter, "{}{digits}", if *negative { "-" } else { "" }),
+            Self::Integer { negative, digits } => {
+                write!(formatter, "{}{digits}", if *negative { "-" } else { "" })
+            }
             Self::Float(value) => write!(formatter, "{value}"),
             Self::Bool(value) => write!(formatter, "{value}"),
         }

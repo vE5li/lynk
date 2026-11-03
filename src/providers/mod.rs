@@ -219,7 +219,9 @@ fn check_order(members: &[Member], expected: &[impl AsRef<str>]) -> Vec<MemberEr
         }
         let before = kept.iter().map(|&kept| listed[kept]).find(|(_, kept)| kept > position);
         let message = match before {
-            Some((neighbour, _)) => format!("`{}` belongs before `{}`", member.name, neighbour.name),
+            Some((neighbour, _)) => {
+                format!("`{}` belongs before `{}`", member.name, neighbour.name)
+            }
             None => {
                 let (neighbour, _) = listed[*kept.last().expect("an unordered member has an ordered one")];
                 format!("`{}` belongs after `{}`", member.name, neighbour.name)

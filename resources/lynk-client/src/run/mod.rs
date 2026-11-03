@@ -12,7 +12,7 @@ const PROGRAM: &str = "lynk";
 #[derive(Debug)]
 pub enum Error {
     /// `lynk` could not be started, most likely missing from the `PATH`.
-    Start(std::io::Error),
+    NotStarted(std::io::Error),
     /// It ran and failed for a reason other than finding nothing.
     Failed { stderr: String },
 }
@@ -20,7 +20,7 @@ pub enum Error {
 impl fmt::Display for Error {
     fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            Self::Start(error) => write!(formatter, "running lynk: {error}"),
+            Self::NotStarted(error) => write!(formatter, "running lynk: {error}"),
             Self::Failed { stderr } => formatter.write_str(stderr),
         }
     }
@@ -61,7 +61,7 @@ pub fn lynk(root: &Path, arguments: &[&str]) -> Result<Output, Error> {
         .arg(root)
         .args(arguments)
         .output()
-        .map_err(Error::Start)?;
+        .map_err(Error::NotStarted)?;
     Ok(Output {
         success: output.status.success(),
         stdout: String::from_utf8_lossy(&output.stdout).into_owned(),

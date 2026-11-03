@@ -9,8 +9,8 @@ when all of them list the same members in the same order. When they do
 not, the members of all of them are ordered by their names' bytes
 ([`lynk::providers::rust::expected_members`](lynk:rust.item)), as a
 directory's entries are, which the README's
-[Selectors](lynk:markdown.section (README.md)) state for both Rust map
-selectors.
+[Selectors](lynk:markdown.section (README.md)) state for every Rust map
+selector.
 
 This is the exception to the definition order of maps that
 [`design/checks-maps-in-definition-order.md`](lynk:filesystem.file)
