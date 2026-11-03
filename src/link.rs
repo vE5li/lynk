@@ -161,7 +161,8 @@ fn arguments(text: &str, offset: usize) -> Result<Vec<Argument>, SyntaxError> {
 /// The [`body`](lynk:rust.argument) of a map read as members: each
 /// `- <member>: <description>` line no more indented than the first, with
 /// the lines indented further below it, and the links nested in it, as part
-/// of its description. A body is prose: quotes mean nothing in it.
+/// of its description. A body is prose: quotes mean nothing in it, but a
+/// member may be written as a code span.
 fn members(text: &str, body: Range<usize>, nested: &[Range<usize>]) -> Result<Vec<Member>, SyntaxError> {
     let mut members: Vec<Member> = Vec::new();
     let mut member_indentation = None;
@@ -187,9 +188,10 @@ fn members(text: &str, body: Range<usize>, nested: &[Range<usize>]) -> Result<Ve
             offset,
         })?;
         member_indentation.get_or_insert(indentation);
-        let name = entry.split_once(':').map_or(entry, |(name, _)| name);
+        let name = entry.split_once(':').map_or(entry, |(name, _)| name).trim();
+        let name = name.strip_prefix('`').and_then(|name| name.strip_suffix('`')).unwrap_or(name);
         members.push(Member {
-            name: name.trim().to_owned(),
+            name: name.to_owned(),
             description: String::new(),
             range: offset..offset + line.trim().len(),
         });
@@ -273,6 +275,17 @@ mod tests {
             .map(|member| (member.name.as_str(), member.description.as_str()))
             .collect();
         assert_eq!(members, vec![("a", "b\n  more"), ("c", "")]);
+    }
+
+    #[test]
+    fn reads_members_written_as_code_spans() {
+        let prose = "- `a`: `b`\n- `c`\n";
+        let (_, members) = link("", None, Some(0..prose.len())).read(prose, MAP).unwrap();
+        let members: Vec<_> = members
+            .iter()
+            .map(|member| (member.name.as_str(), member.description.as_str()))
+            .collect();
+        assert_eq!(members, vec![("a", "`b`"), ("c", "")]);
     }
 
     #[test]
