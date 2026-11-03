@@ -31,17 +31,17 @@ interface links {
         find-root: static func(directory: string) -> option<string>;
         /// Checks every link, as [`lynk lint`](lynk:lynk.lint) does.
         lint: func() -> list<problem>;
-        /// The spans a link points at, as [`lynk where`](lynk:lynk.where)
+        /// The spans a link points at, as [`lynk resolve`](lynk:lynk.resolve)
         /// prints them.
         locate: func(link: string) -> result<list<span>, string>;
         /// The places linking to what a link points at, found as
-        /// [`lynk ref`](lynk:lynk.ref) finds them: through the spans of
+        /// [`lynk backlinks`](lynk:lynk.backlinks) finds them: through the spans of
         /// [`workspace.locate`](lynk:wit.function (resources/lynk.wit)).
         references: func(link: string) -> result<list<span>, string>;
     }
 
     /// The parts of the documentation matching `words`, best first, as
-    /// [`lynk find`](lynk:lynk.find) lists them.
+    /// [`lynk context`](lynk:lynk.context) lists them.
     find: func(root: string, words: list<string>) -> list<span>;
 }
 

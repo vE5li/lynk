@@ -12,7 +12,7 @@ comments are
 ([`lynk::formats::markdown::comments::read`](lynk:rust.item)): each run of
 comment lines on consecutive lines is read as Markdown, so links are
 Markdown links, inline code and code blocks hold examples, as in Markdown
-files, and each run is one of the units [`lynk find`](lynk:lynk.find)
+files, and each run is one of the units [`lynk context`](lynk:lynk.context)
 searches, titled by the line of code it is about. WIT files, whose
 comments follow Rust's, are lexed the same way (their
 [Decision](lynk:markdown.section (design/reads-wit-with-wit-parser.md)));

@@ -26,11 +26,11 @@ documentation whole, source code only in its comments.
 is the nearest directory up holding `.jj` or `.git`.
 
 - [`lint`](lynk:lynk.lint) checks every link of the repository.
-- [`where`](lynk:lynk.where) resolves a link to the spans it points at,
-  with their first line.
-- [`ref`](lynk:lynk.ref) lists every place linking to the spans a link
-  points at.
-- [`find`](lynk:lynk.find) lists the parts of the documentation and the
+- [`resolve`](lynk:lynk.resolve) resolves a link to the spans it points
+  at, with their first line.
+- [`backlinks`](lynk:lynk.backlinks) lists every place linking to the
+  spans a link points at.
+- [`context`](lynk:lynk.context) lists the parts of the documentation and the
   comments matching a few words, best first. Unlike links, it matches
   words, so it also finds what nobody linked yet. With `TYPESAFE_API_KEY`
   set, its best word matches are ordered by how relevant they are, shown
@@ -43,10 +43,10 @@ is the nearest directory up holding `.jj` or `.git`.
   copied as they are; ignored and hidden ones are left out, as everywhere
   else.
 
-[`where`](lynk:lynk.where) and [`ref`](lynk:lynk.ref) take a
-`<provider.selector>` and its arguments. On the command line nothing is
-quoted, and a file left out matches every file: `lynk ref markdown.section
-Legacy` lists everything referring to any section titled "Legacy".
+[`resolve`](lynk:lynk.resolve) and [`backlinks`](lynk:lynk.backlinks)
+take a `<provider.selector>` and its arguments. On the command line
+nothing is quoted, and a file left out matches every file:
+`lynk backlinks markdown.section Legacy` lists everything referring to any section titled "Legacy".
 
 ## Link syntax
 
@@ -140,9 +140,9 @@ writes them, starting with the crate:
 - lynk.selectors: no arguments; a complete map of these selectors
 - lynk.self: no arguments; the tool itself
 - lynk.lint: no arguments; its command checking every link
-- lynk.where: no arguments; its command resolving a link
-- lynk.ref: no arguments; its command listing the links to a target
-- lynk.find: no arguments; its command searching the documentation by words
+- lynk.resolve: no arguments; its command resolving a link
+- lynk.backlinks: no arguments; its command listing the links to a target
+- lynk.context: no arguments; its command searching the documentation by words
 - lynk.export: no arguments; its command writing a directory without its links
 <!-- /lynk -->
 

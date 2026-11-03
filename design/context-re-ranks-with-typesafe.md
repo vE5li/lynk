@@ -1,8 +1,8 @@
-# Lynk find re-ranks with TypeSafe
+# Lynk context re-ranks with TypeSafe
 
 ## Decision
 
-[`lynk find`](lynk:lynk.find) picks the
+[`lynk context`](lynk:lynk.context) picks the
 [`30`](lynk:rust.literal (lynk::relevance::SHORTLIST_LENGTH)) best word
 matches, then asks TypeSafe's model
 [`jev-latest`](lynk:rust.literal (lynk::relevance::MODEL)), in one

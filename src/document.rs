@@ -32,7 +32,7 @@ pub struct Document {
     pub code_ranges: Vec<Range<usize>>,
     /// Empty in formats without headings.
     pub headings: Vec<Heading>,
-    /// What [`lynk find`](lynk:lynk.find) searches.
+    /// What [`lynk context`](lynk:lynk.context) searches.
     pub units: Vec<Unit>,
 }
 

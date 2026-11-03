@@ -26,7 +26,7 @@ A value is one of these:
 <!-- /lynk -->
 
 [`lynk::providers::rust::literals::tests::matches_the_value_however_it_is_written`](lynk:rust.item)
-holds the comparison to these rules. [`lynk where`](lynk:lynk.where)
+holds the comparison to these rules. [`lynk resolve`](lynk:lynk.resolve)
 resolves a literal like an item, to its definition, and only
 [`lynk lint`](lynk:lynk.lint) compares the value.
 

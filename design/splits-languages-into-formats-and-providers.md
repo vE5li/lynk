@@ -8,7 +8,7 @@ trait with its own list, in a module of its own:
 - A *format* ([`lynk::formats::Format`](lynk:rust.item), listed in
   [`lynk::formats::FORMATS`](lynk:rust.item)) reads the files links
   are written in: what of them is prose, what is code, what
-  [`lynk find`](lynk:lynk.find) searches, and the links themselves.
+  [`lynk context`](lynk:lynk.context) searches, and the links themselves.
 - A *provider* ([`lynk::providers::Provider`](lynk:rust.item), listed
   in [`lynk::providers::PROVIDERS`](lynk:rust.item)) names the targets
   links point at: its selectors, how each reads its arguments, what it

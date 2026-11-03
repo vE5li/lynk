@@ -1,6 +1,7 @@
-//! Re-ranks `find`'s best word matches by asking TypeSafe whether each one
-//! is relevant to the task; its design record's
-//! [Decision](lynk:markdown.section (design/find-re-ranks-with-typesafe.md))
+//! Re-ranks [`lynk context`](lynk:lynk.context)'s best word matches by
+//! asking TypeSafe whether each one is relevant to the task; its design
+//! record's
+//! [Decision](lynk:markdown.section (design/context-re-ranks-with-typesafe.md))
 //! says why.
 
 use std::time::Duration;

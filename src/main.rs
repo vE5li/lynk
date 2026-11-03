@@ -34,15 +34,15 @@ fn run(cli: Cli) -> Result<ExitCode, String> {
     let root = cli.root;
     match cli.command {
         Command::Lint => Ok(lint(&load_workspace(root)?)),
-        Command::Where(arguments) => Ok(print_where(
+        Command::Resolve(arguments) => Ok(print_resolved(
             &load_workspace(root)?,
             query_from_command_line(arguments)?.as_ref(),
         )),
-        Command::Ref(arguments) => Ok(print_references(
+        Command::Backlinks(arguments) => Ok(print_backlinks(
             &load_workspace(root)?,
             query_from_command_line(arguments)?.as_ref(),
         )),
-        Command::Find { words } => Ok(print_found(&load_workspace(root)?, &words.join(" "))),
+        Command::Context { words } => Ok(print_context(&load_workspace(root)?, &words.join(" "))),
         // Reads only the files it exports, so it needs the root but not the
         // whole repository.
         Command::Export { directory, output } => {
@@ -133,7 +133,7 @@ fn lint(workspace: &Workspace) -> ExitCode {
     ExitCode::SUCCESS
 }
 
-fn print_where(workspace: &Workspace, query: &dyn Query) -> ExitCode {
+fn print_resolved(workspace: &Workspace, query: &dyn Query) -> ExitCode {
     let targets = query.resolve(workspace);
 
     for target in &targets {
@@ -143,7 +143,7 @@ fn print_where(workspace: &Workspace, query: &dyn Query) -> ExitCode {
     if targets.is_empty() { ExitCode::FAILURE } else { ExitCode::SUCCESS }
 }
 
-fn print_references(workspace: &Workspace, query: &dyn Query) -> ExitCode {
+fn print_backlinks(workspace: &Workspace, query: &dyn Query) -> ExitCode {
     let targets: HashSet<Span> = query.resolve(workspace).into_iter().collect();
     let mut found = false;
     for linked in &workspace.documents {
@@ -167,7 +167,7 @@ fn print_references(workspace: &Workspace, query: &dyn Query) -> ExitCode {
     if found { ExitCode::SUCCESS } else { ExitCode::FAILURE }
 }
 
-fn print_found(workspace: &Workspace, query: &str) -> ExitCode {
+fn print_context(workspace: &Workspace, query: &str) -> ExitCode {
     const FOUND_LIMIT: usize = 10;
 
     let mut found = find::find(workspace, query);

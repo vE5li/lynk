@@ -22,11 +22,11 @@ pub enum Command {
     /// Check every link of the repository.
     Lint,
     /// Print the places a link points at.
-    Where(QueryArguments),
+    Resolve(QueryArguments),
     /// Print the links pointing at the places a link points at.
-    Ref(QueryArguments),
+    Backlinks(QueryArguments),
     /// Print the parts of the documentation about some words, best first.
-    Find {
+    Context {
         #[arg(required = true, value_name = "words")]
         words: Vec<String>,
     },

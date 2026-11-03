@@ -20,7 +20,7 @@ A comment describing a function names its arguments far more often than
 anything else in it; repeating the function's path in each link would
 make the comment harder to read than the backticks it replaces, and go
 stale when the function moves. Links are compared by the spans they
-resolve to ([`lynk::providers::Query::resolve`](lynk:rust.item)), so [`lynk ref`](lynk:lynk.ref) finds a link written with
+resolve to ([`lynk::providers::Query::resolve`](lynk:rust.item)), so [`lynk backlinks`](lynk:lynk.backlinks) finds a link written with
 the default from the same target written in full.
 
 ## Alternatives

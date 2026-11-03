@@ -32,16 +32,17 @@ Run as `lynk` from anywhere inside the repository. Besides
 links in both directions, each command taking a `<provider.selector>` and
 its arguments:
 
-- [`lynk ref`](lynk:lynk.ref) lists every place linking to that target.
-- [`lynk where`](lynk:lynk.where) resolves a link to the spans it
+- [`lynk resolve`](lynk:lynk.resolve) resolves a link to the spans it
   points at, with their first line.
+- [`lynk backlinks`](lynk:lynk.backlinks) lists every place linking to
+  that target.
 
 On the command line nothing is quoted, and a file left out matches every
-file. For example, [`lynk ref`](lynk:lynk.ref) with
+file. For example, [`lynk backlinks`](lynk:lynk.backlinks) with
 `filesystem.file README.md` lists everything that refers to the README.
 
-Before starting a task, run [`lynk find`](lynk:lynk.find) with a few
-words describing it (`lynk find comment parsing`) and read what it lists:
+Before starting a task, run [`lynk context`](lynk:lynk.context) with a few
+words describing it (`lynk context comment parsing`) and read what it lists:
 the documentation sections, decisions and comments most related to them,
 best first. Unlike links, it matches words, so it also finds what nobody
 linked yet. With `TYPESAFE_API_KEY` set, its best word matches are ordered
@@ -49,9 +50,9 @@ by how relevant they are to the task, shown as a probability; keep the key
 out of version control.
 
 Before changing, moving or removing anything, run
-[`lynk ref`](lynk:lynk.ref) on it and update the text at every place it
-lists, in the same change. Follow links with
-[`lynk where`](lynk:lynk.where) instead of searching for names. Run
+[`lynk backlinks`](lynk:lynk.backlinks) on it and update the text at
+every place it lists, in the same change. Follow links with
+[`lynk resolve`](lynk:lynk.resolve) instead of searching for names. Run
 [`lynk lint`](lynk:lynk.lint) before finishing any change.
 
 ## Adding selectors

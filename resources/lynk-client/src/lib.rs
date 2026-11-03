@@ -35,16 +35,16 @@ pub mod workspace {
             Ok(output.stdout.lines().filter_map(Problem::parse).collect())
         }
 
-        /// The spans a link points at, as [`lynk where`](lynk:lynk.where) prints them: the
+        /// The spans a link points at, as [`lynk resolve`](lynk:lynk.resolve) prints them: the
         /// link is its `<provider.selector>` and its arguments, unquoted.
         pub fn locate(&self, selector: &str, arguments: &[&str]) -> Result<Vec<Span>, String> {
-            self.spans("where", selector, arguments)
+            self.spans("resolve", selector, arguments)
         }
 
-        /// The places linking to what a link points at, as [`lynk ref`](lynk:lynk.ref)
+        /// The places linking to what a link points at, as [`lynk backlinks`](lynk:lynk.backlinks)
         /// prints them.
         pub fn references(&self, selector: &str, arguments: &[&str]) -> Result<Vec<Span>, String> {
-            self.spans("ref", selector, arguments)
+            self.spans("backlinks", selector, arguments)
         }
 
         fn spans(&self, command: &str, selector: &str, arguments: &[&str]) -> Result<Vec<Span>, String> {
@@ -61,9 +61,9 @@ pub mod workspace {
 
         /// The parts of the documentation matching
         /// [`words`](lynk:rust.argument), best first, as
-        /// [`lynk find`](lynk:lynk.find) lists them.
+        /// [`lynk context`](lynk:lynk.context) lists them.
         pub fn find(&self, words: &[&str]) -> Result<Vec<Span>, String> {
-            let mut command_line = vec!["find"];
+            let mut command_line = vec!["context"];
             command_line.extend_from_slice(words);
             let output = run::lynk(&self.root, &command_line)?.into_result()?;
             // Each line is a score, the span and its title, separated by tabs.
