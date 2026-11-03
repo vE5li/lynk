@@ -37,13 +37,13 @@ pub mod workspace {
 
         /// The spans a link points at, as [`lynk resolve`](lynk:lynk.resolve) prints them: the
         /// link is its `<provider.selector>` and its arguments, unquoted.
-        pub fn locate(&self, selector: &str, arguments: &[&str]) -> Result<Vec<Span>, String> {
+        pub fn resolve(&self, selector: &str, arguments: &[&str]) -> Result<Vec<Span>, String> {
             self.spans("resolve", selector, arguments)
         }
 
         /// The places linking to what a link points at, as [`lynk backlinks`](lynk:lynk.backlinks)
         /// prints them.
-        pub fn references(&self, selector: &str, arguments: &[&str]) -> Result<Vec<Span>, String> {
+        pub fn backlinks(&self, selector: &str, arguments: &[&str]) -> Result<Vec<Span>, String> {
             self.spans("backlinks", selector, arguments)
         }
 
@@ -62,7 +62,7 @@ pub mod workspace {
         /// The parts of the documentation matching
         /// [`words`](lynk:rust.argument), best first, as
         /// [`lynk context`](lynk:lynk.context) lists them.
-        pub fn find(&self, words: &[&str]) -> Result<Vec<Span>, String> {
+        pub fn context(&self, words: &[&str]) -> Result<Vec<Span>, String> {
             let mut command_line = vec!["context"];
             command_line.extend_from_slice(words);
             let output = run::lynk(&self.root, &command_line)?.into_result()?;

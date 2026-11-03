@@ -33,16 +33,16 @@ interface links {
         lint: func() -> list<problem>;
         /// The spans a link points at, as [`lynk resolve`](lynk:lynk.resolve)
         /// prints them.
-        locate: func(link: string) -> result<list<span>, string>;
+        resolve: func(link: string) -> result<list<span>, string>;
         /// The places linking to what a link points at, found as
         /// [`lynk backlinks`](lynk:lynk.backlinks) finds them: through the spans of
-        /// [`workspace.locate`](lynk:wit.function (resources/lynk.wit)).
-        references: func(link: string) -> result<list<span>, string>;
+        /// [`workspace.resolve`](lynk:wit.function (resources/lynk.wit)).
+        backlinks: func(link: string) -> result<list<span>, string>;
     }
 
     /// The parts of the documentation matching `words`, best first, as
     /// [`lynk context`](lynk:lynk.context) lists them.
-    find: func(root: string, words: list<string>) -> list<span>;
+    context: func(root: string, words: list<string>) -> list<span>;
 }
 
 /// [lynk](lynk:lynk.self) with its command line.

@@ -24,7 +24,7 @@ declares a function:
 <!-- lynk wit.* -->
 - function:
   - Inside an interface:
-    [`find`](lynk:wit.function (resources/lynk.wit)).
+    [`context`](lynk:wit.function (resources/lynk.wit)).
   - Inside a world:
     [`run`](lynk:wit.function (resources/lynk.wit)).
   - A resource's constructor:
@@ -33,8 +33,8 @@ declares a function:
     [`workspace.find-root`](lynk:wit.function (resources/lynk.wit)).
   - A resource's methods:
     [`workspace.lint`](lynk:wit.function (resources/lynk.wit)),
-    [`workspace.locate`](lynk:wit.function (resources/lynk.wit)) and
-    [`workspace.references`](lynk:wit.function (resources/lynk.wit)).
+    [`workspace.resolve`](lynk:wit.function (resources/lynk.wit)) and
+    [`workspace.backlinks`](lynk:wit.function (resources/lynk.wit)).
 <!-- /lynk -->
 
 The protobuf file describes the same as messages of a service. Its
@@ -94,7 +94,7 @@ variant declaring fields by name:
     [`root`](lynk:rust.argument (lynk_client::run::lynk)).
   - Of a method, through its type:
     [`selector`](lynk:rust.argument
-      (lynk_client::workspace::Workspace::locate)).
+      (lynk_client::workspace::Workspace::resolve)).
   - Of the function a link is written on, as the crate's comments link
     to them.
 - comment:
@@ -151,7 +151,7 @@ and a dev shell lists it:
     [`test-client`](lynk:nix.dev-shell-command
       (resources/lynk-client/flake.nix)).
   - In a list joined to another with `++`:
-    [`references`](lynk:nix.dev-shell-command
+    [`backlinks`](lynk:nix.dev-shell-command
       (resources/lynk-client/flake.nix)).
 <!-- /lynk -->
 

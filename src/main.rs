@@ -1,7 +1,7 @@
 mod command;
 mod document;
+mod context;
 mod export;
-mod find;
 mod formats;
 mod link;
 mod location;
@@ -170,7 +170,7 @@ fn print_backlinks(workspace: &Workspace, query: &dyn Query) -> ExitCode {
 fn print_context(workspace: &Workspace, query: &str) -> ExitCode {
     const FOUND_LIMIT: usize = 10;
 
-    let mut found = find::find(workspace, query);
+    let mut found = context::search(workspace, query);
     if let Ok(api_key) = std::env::var(relevance::API_KEY_VARIABLE) {
         let shortlist: Vec<&str> = found
             .iter()

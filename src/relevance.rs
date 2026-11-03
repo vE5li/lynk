@@ -8,7 +8,7 @@ use std::time::Duration;
 
 use serde_json::{Value, json};
 
-use crate::find::Found;
+use crate::context::Found;
 
 /// The environment variable holding the key; without it, results keep
 /// their word scores.

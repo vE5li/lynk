@@ -18,14 +18,14 @@
       text = "cargo test";
     };
 
-    references = pkgs.writeShellScriptBin "references" ''
-      cargo run --quiet -- ref "$@"
+    backlinks = pkgs.writeShellScriptBin "backlinks" ''
+      cargo run --quiet -- backlinks "$@"
     '';
   in {
     devShells.x86_64-linux.default = pkgs.mkShell {
       nativeBuildInputs = [pkgs.cargo];
       buildInputs = [lint];
-      packages = [client-tests] ++ [references];
+      packages = [client-tests] ++ [backlinks];
     };
   };
 }

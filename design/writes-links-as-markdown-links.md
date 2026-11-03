@@ -33,7 +33,7 @@ is updated:
 - lynk-client: a client of the command line; neither
   `<!-- /lynk -->` in code nor a lone " ends or quotes anything here
 - lynk.wit: what a nested link such as
-  [`find`](lynk:wit.function (resources/lynk.wit)) checks against
+  [`context`](lynk:wit.function (resources/lynk.wit)) checks against
 - lynk.proto: what a link wrapped inside its title, such as
   [`LintResponse.Problem`](lynk:protobuf.message
     (resources/lynk.proto)), checks against

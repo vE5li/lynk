@@ -104,7 +104,7 @@ command line, quote it from the shell, which would expand it:
 
 ```
 <!-- lynk wit.* -->
-- function: written as [`find`](lynk:wit.function (lynk.wit))
+- function: written as [`context`](lynk:wit.function (lynk.wit))
 <!-- /lynk -->
 ```
 

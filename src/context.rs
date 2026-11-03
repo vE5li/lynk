@@ -21,7 +21,7 @@ pub struct Found {
 /// first, searching
 /// every document's prose unit by unit, so a match in a long file points
 /// at the paragraph it is in.
-pub fn find(workspace: &Workspace, query: &str) -> Vec<Found> {
+pub fn search(workspace: &Workspace, query: &str) -> Vec<Found> {
     let terms = stems(query);
     if terms.is_empty() {
         return Vec::new();
