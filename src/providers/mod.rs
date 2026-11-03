@@ -164,6 +164,8 @@ impl Query for EverySelector {
     }
 }
 
+/// Checks that [`members`](lynk:rust.argument) lists every name of
+/// [`expected`](lynk:rust.argument) exactly once, in the same order.
 pub fn check_complete_map(members: &[Member], expected: &[impl AsRef<str>]) -> Vec<MemberError> {
     let mut errors = Vec::new();
     for (index, member) in members.iter().enumerate() {
@@ -188,7 +190,74 @@ pub fn check_complete_map(members: &[Member], expected: &[impl AsRef<str>]) -> V
             });
         }
     }
+    errors.extend(check_order(members, expected));
     errors
+}
+
+/// Checks that the members found in [`expected`](lynk:rust.argument) are
+/// listed in its order, each counted where it is first listed. The longest
+/// run already in order is kept, and every other member is reported against
+/// the nearest kept member it belongs before, so moving one member reports
+/// only that member.
+fn check_order(members: &[Member], expected: &[impl AsRef<str>]) -> Vec<MemberError> {
+    let listed: Vec<(&Member, usize)> = members
+        .iter()
+        .enumerate()
+        .filter(|(index, member)| !members[..*index].iter().any(|earlier| earlier.name == member.name))
+        .filter_map(|(_, member)| {
+            let position = expected.iter().position(|name| name.as_ref() == member.name)?;
+            Some((member, position))
+        })
+        .collect();
+    let positions: Vec<usize> = listed.iter().map(|(_, position)| *position).collect();
+    let kept = longest_increasing(&positions);
+
+    let mut errors = Vec::new();
+    for (index, (member, position)) in listed.iter().enumerate() {
+        if kept.contains(&index) {
+            continue;
+        }
+        let before = kept.iter().map(|&kept| listed[kept]).find(|(_, kept)| kept > position);
+        let message = match before {
+            Some((neighbour, _)) => format!("`{}` belongs before `{}`", member.name, neighbour.name),
+            None => {
+                let (neighbour, _) = listed[*kept.last().expect("an unordered member has an ordered one")];
+                format!("`{}` belongs after `{}`", member.name, neighbour.name)
+            }
+        };
+        errors.push(MemberError {
+            range: Some(member.range.clone()),
+            message,
+        });
+    }
+    errors
+}
+
+/// The indices of a longest strictly increasing subsequence of
+/// [`values`](lynk:rust.argument), in order.
+fn longest_increasing(values: &[usize]) -> Vec<usize> {
+    // For each index, the length of the longest run ending there and the
+    // index before it in that run.
+    let mut runs: Vec<(usize, Option<usize>)> = Vec::with_capacity(values.len());
+    for (index, value) in values.iter().enumerate() {
+        let best = (0..index)
+            .filter(|&earlier| values[earlier] < *value)
+            .max_by_key(|&earlier| (runs[earlier].0, std::cmp::Reverse(earlier)));
+        runs.push(match best {
+            Some(earlier) => (runs[earlier].0 + 1, Some(earlier)),
+            None => (1, None),
+        });
+    }
+    let Some(mut last) = (0..values.len()).max_by_key(|&index| (runs[index].0, std::cmp::Reverse(index))) else {
+        return Vec::new();
+    };
+    let mut indices = vec![last];
+    while let Some(earlier) = runs[last].1 {
+        indices.push(earlier);
+        last = earlier;
+    }
+    indices.reverse();
+    indices
 }
 
 pub fn no_arguments(selector_name: &str, arguments: &[&str]) -> Result<(), String> {
@@ -265,6 +334,37 @@ pub mod tests {
             "`first` is listed twice",
             "`unknown` is not a member",
             "`second` is missing"
+        ]);
+    }
+
+    fn order_messages(members: &[&str], expected: &[&str]) -> Vec<String> {
+        let members: Vec<Member> = members.iter().map(|name| member(name)).collect();
+        check_complete_map(&members, expected)
+            .into_iter()
+            .map(|error| error.message)
+            .collect()
+    }
+
+    #[test]
+    fn a_complete_map_lists_its_members_in_order() {
+        assert_eq!(order_messages(&["b", "a"], &["a", "b"]), vec!["`a` belongs before `b`"]);
+    }
+
+    #[test]
+    fn a_moved_member_is_the_only_one_out_of_order() {
+        assert_eq!(order_messages(&["b", "c", "d", "a", "e"], &["a", "b", "c", "d", "e"]), vec![
+            "`a` belongs before `b`"
+        ]);
+        assert_eq!(order_messages(&["e", "a", "b", "c", "d"], &["a", "b", "c", "d", "e"]), vec![
+            "`e` belongs after `d`"
+        ]);
+    }
+
+    #[test]
+    fn unknown_and_repeated_members_are_not_out_of_order() {
+        assert_eq!(order_messages(&["a", "x", "b", "a"], &["a", "b"]), vec![
+            "`x` is not a member",
+            "`a` is listed twice"
         ]);
     }
 

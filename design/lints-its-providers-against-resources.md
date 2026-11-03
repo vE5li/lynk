@@ -10,10 +10,10 @@ This record links to everything in them, so every run of
 against real files:
 
 <!-- lynk filesystem.map-entry resources -->
-- lynk.wit: WIT describing lynk as a component
-- lynk.proto: protobuf describing lynk as a service
 - lynk-client: a Rust crate running lynk's command line, with its
   README, its manifest and the flake of its development environment
+- lynk.proto: protobuf describing lynk as a service
+- lynk.wit: WIT describing lynk as a component
 <!-- /lynk -->
 
 The WIT file describes lynk itself as a component. Its comments link to

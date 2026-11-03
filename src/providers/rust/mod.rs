@@ -170,17 +170,8 @@ impl Query for RustQuery {
     /// Members are checked against those of every definition found; a
     /// target found nowhere has none to check, its link points at nothing.
     fn check_members(&self, members: &[Member], workspace: &Workspace) -> Vec<MemberError> {
-        let targets = self.map_targets(workspace);
-        if targets.is_empty() {
-            return Vec::new();
-        }
-        let mut expected: Vec<String> = Vec::new();
-        for name in targets.into_iter().flat_map(|(_, names)| names) {
-            if !expected.contains(&name) {
-                expected.push(name);
-            }
-        }
-        check_complete_map(members, &expected)
+        let definitions: Vec<Vec<String>> = self.map_targets(workspace).into_iter().map(|(_, names)| names).collect();
+        check_complete_map(members, &expected_members(definitions))
     }
 
     /// A literal's value is checked at every definition found.
@@ -197,6 +188,23 @@ impl Query for RustQuery {
             })
             .collect()
     }
+}
+
+/// The members of every definition of a map's target, in the order they
+/// define them; definitions listing different members, or the same ones in
+/// another order, have no order in common, so their members are sorted by
+/// name.
+fn expected_members(definitions: Vec<Vec<String>>) -> Vec<String> {
+    let Some((first, others)) = definitions.split_first() else {
+        return Vec::new();
+    };
+    if others.iter().all(|other| other == first) {
+        return first.clone();
+    }
+    let mut names: Vec<String> = definitions.into_iter().flatten().collect();
+    names.sort();
+    names.dedup();
+    names
 }
 
 #[cfg(test)]
@@ -239,6 +247,25 @@ mod tests {
                 text: "kept sorted".to_owned(),
             },
         );
+    }
+
+    #[test]
+    fn definitions_disagreeing_on_their_members_sort_them_by_name() {
+        let names = |names: &[&str]| -> Vec<String> { names.iter().map(|&name| name.to_owned()).collect() };
+        assert_eq!(expected_members(vec![names(&["b", "a"])]), names(&["b", "a"]));
+        assert_eq!(
+            expected_members(vec![names(&["b", "a"]), names(&["b", "a"])]),
+            names(&["b", "a"])
+        );
+        assert_eq!(
+            expected_members(vec![names(&["b", "a"]), names(&["a", "b"])]),
+            names(&["a", "b"])
+        );
+        assert_eq!(
+            expected_members(vec![names(&["c", "a"]), names(&["c", "b", "a"])]),
+            names(&["a", "b", "c"])
+        );
+        assert!(expected_members(Vec::new()).is_empty());
     }
 
     #[test]
