@@ -6,6 +6,7 @@ use clap::{Args, Parser, Subcommand};
 #[derive(Debug, Parser)]
 #[command(
     name = "lynk",
+    version,
     after_help = "Arguments given on the command line are never quoted; a file left out matches every file."
 )]
 pub struct Cli {

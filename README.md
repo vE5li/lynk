@@ -29,7 +29,8 @@ Ignored and hidden files, on the other hand, are left out entirely.
 ## Commands
 
 `lynk [--root <directory>] <command>`; without `--root`, the repository
-is the nearest directory up holding `.jj` or `.git`.
+is the nearest directory up holding `.jj` or `.git`. `lynk --version`
+prints its version.
 
 <!-- lynk rust.map-variant-snake-case lynk::command::Command -->
 - `lint`: checks every link of the repository.
