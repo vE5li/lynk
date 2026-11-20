@@ -14,8 +14,18 @@ in {
       (lib.map target-scripts)
       lib.flatten
     ];
+
+    log-level = "info";
+    RUST_BACKTRACE = "1";
   in {
+    make-shells.default.env.CARGO_TARGET_DIR = "target";
+
     make-shells.default = {
+      env = {
+        RUST_LOG = log-level;
+        inherit RUST_BACKTRACE;
+      };
+
       packages =
         [pkgs.cargo]
         ++ every-target-script

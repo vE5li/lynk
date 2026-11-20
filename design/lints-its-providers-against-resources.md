@@ -147,7 +147,9 @@ here, one link per way Cargo declares a dependency:
 
 The crate's flake, and the flake-parts module next to it, build commands
 for its development environment, and each of them is linked here, one
-link per way a command is built and a dev shell lists it:
+link per way a command is built and a dev shell lists it, along with
+attributes of the module, one link per way Nix binds an attribute, and
+the variables of its environment:
 
 <!-- lynk nix.* -->
 - dev-shell-command:
@@ -167,6 +169,25 @@ link per way a command is built and a dev shell lists it:
       (resources/lynk-client/dev-shells.nix)) and
     [`check-macos`](lynk:nix.dev-shell-command
       (resources/lynk-client/dev-shells.nix)).
+- attribute:
+  - Bound with a dotted path:
+    [`make-shells.default.env.CARGO_TARGET_DIR`](lynk:nix.attribute
+      (resources/lynk-client/dev-shells.nix)).
+  - Bound in attribute sets nested in each other:
+    [`make-shells.default.env.RUST_LOG`](lynk:nix.attribute
+      (resources/lynk-client/dev-shells.nix)).
+  - Inherited:
+    [`make-shells.default.env.RUST_BACKTRACE`](lynk:nix.attribute
+      (resources/lynk-client/dev-shells.nix)).
+  - Bound by a `let`:
+    [`log-level`](lynk:nix.attribute
+      (resources/lynk-client/dev-shells.nix)).
+- map-attribute:
+  <!-- lynk nix.map-attribute resources/lynk-client/dev-shells.nix make-shells.default.env -->
+  - CARGO_TARGET_DIR: where Cargo builds the client
+  - RUST_LOG: how much it logs
+  - RUST_BACKTRACE: whether it prints a backtrace on a panic
+  <!-- /lynk -->
 <!-- /lynk -->
 
 The crate's README is Markdown written as any repository may write it,

@@ -5,10 +5,12 @@
 The `nix` provider of [lynk](lynk:lynk.self) parses a Nix file with
 the [`rnix`](lynk:cargo.dependency (Cargo.toml)) crate
 ([`lynk::providers::nix`](lynk:rust.module)) and reads its syntax
-tree, evaluating it without Nix. Its one selector names a command of a
+tree, evaluating it without Nix. One selector names a command of a
 development environment the way a reader types it, by the name it has on
 `PATH`, and resolves to where it is built
 ([`lynk::providers::nix::find_dev_shell_command`](lynk:rust.item)).
+The others name an attribute of a file by its attribute path, or map the
+attributes under one.
 
 A dev shell is either a call to one of the functions building one
 ([`lynk::providers::nix::DEV_SHELL_FUNCTIONS`](lynk:rust.item)),
@@ -42,6 +44,23 @@ command spans from the name of the binding holding it to the end of its
 value, or covers the application alone when it is written inline, such
 as in a list.
 
+An attribute's path is read from the syntax alone, never evaluated
+([`lynk::providers::nix::definitions`](lynk:rust.item)): the names of
+the bindings it is nested in, as values of bindings, through parentheses
+and `let` bodies, counted from the outermost attribute set or from the
+`let` binding it ([`lynk::providers::nix::container_path`](lynk:rust.item)).
+Nested and dotted bindings are the same path, and every binding writing
+an attribute's last name defines it. The bindings counted from one
+outermost attribute set build one value, as Nix merges them, so an
+attribute split over several of them, as modules write them, is one
+target spanning them all
+([`lynk::providers::nix::find_attribute`](lynk:rust.item)), and maps
+as one, in the order its attributes are first defined
+([`lynk::providers::nix::attribute_names_under`](lynk:rust.item)).
+The same path counted from different attribute sets, such as each one
+given to a function merging them, is as many targets, and a link to it
+is ambiguous.
+
 ## Why
 
 [`lynk lint`](lynk:lynk.lint) runs before every change, so reading a
@@ -60,6 +79,12 @@ much as the file itself decides. Stopping at the file keeps the
 evaluation fast and its answer the same everywhere, and what it cannot
 know it leaves out rather than guessing.
 
+Text about configuration names attributes as they are written: the
+variables of an environment, the users of a test realm, the servers of a
+client's settings. Those are where a reader edits them, so an attribute
+links to where it is written rather than to the option it becomes once
+modules merge, which only evaluating every module could tell.
+
 ## Alternatives
 
 - **`nix eval`** of the dev shell's inputs: exact, but needs Nix, fetches
@@ -73,6 +98,14 @@ know it leaves out rather than guessing.
 - **Recognising the script builders by name**, such as
   `writeShellScriptBin`: stricter, but every other builder taking a name
   would need adding.
-- **A selector for any binding**, without the dev shell: links anything
-  in a Nix file, but would stay silent when a command leaves the
-  environment.
+- **Linking commands with `nix.attribute`**, without the dev shell:
+  links anything in a Nix file, but names the binding rather than the
+  command, and stays silent when a command leaves the environment.
+- **Evaluating attribute paths**, as the dev shells' inputs are: would
+  follow attribute sets passed to functions such as `lib.mkMerge`, but
+  a path would then name a value rather than where it is written, and
+  links could not tell which binding of a merged attribute set they
+  point at.
+- **Paths counted from the file's root expression only**: one path per
+  attribute, but `let` bindings and the attribute sets of a module's
+  function body would need prefixes no reader writes.

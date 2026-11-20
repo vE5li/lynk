@@ -198,6 +198,8 @@ writes them, starting with the crate:
 | `protobuf.map-field` | `<file> <message>` | its fields, those of its `oneof`s included where they are declared; a nested message's as `<outer>.<message>` |
 | `cargo.dependency` | `<manifest> <dependency>` | the dependencies declared under that key in its package's, platforms' and workspace's tables, from the key or the table's header to the end of its last value |
 | `nix.dev-shell-command` | `<file> <command>` | the places building a command that a dev shell lists among what it puts on `PATH`: a function the file does not define applied to the command's name, as a string or the `name` of an attribute set, the file's names being followed and its functions and common list functions applied, so a name may be interpolated from a list; from the name of the binding holding it to the end of its value, or the application alone when it is not bound |
+| `nix.attribute` | `<file> <attribute path>` | the bindings defining the attribute, its path written as Nix writes it and counted from the outermost attribute set its bindings are nested in, through parentheses and `let` bodies, or from the `let` binding it; from the name of the first binding writing its last name to the end of the value of the last, or the name it inherits, once per outermost attribute set or `let` |
+| `nix.map-attribute` | `<file> <attribute path>` | the names of the attributes directly under it, as `nix.attribute` finds them, in the order they are first defined |
 | `lynk.selectors` | none | a complete map of these selectors |
 | `lynk.self` | none | the tool itself |
 | `lynk.lint` | none | its command checking every link |
