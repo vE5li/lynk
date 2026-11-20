@@ -119,15 +119,6 @@ innermost first:
 <!-- /lynk -->
 ```
 
-A map is one of two kinds:
-
-- **`map-<member>`** is complete: every member appears exactly once, in
-  the order its target defines them, so adding, removing, renaming or
-  reordering one fails the lint until the list follows.
-- **`partial-map-<member>`** names some members: every entry must exist,
-  in the order its target defines them, but members may be left out. Use it only when the text is genuinely
-  about a few members, never to dodge updating a complete map.
-
 Written in place of a selector, `*` makes a complete map of the provider's
 selectors, named without the provider. It takes no arguments and promises
 nothing about its descriptions; it only makes adding a selector to the
