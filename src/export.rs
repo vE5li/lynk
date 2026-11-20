@@ -33,14 +33,15 @@ pub fn export_directory(root: &Path, directory: &Path, output: &Path) -> Result<
     // Listed and read before writing anything, so that links may lead to
     // any of them.
     let files = workspace::files(&source).map_err(|error| format!("{}: {error}", source.display()))?;
+    let scanned = workspace::scanned_files(&source).map_err(|error| format!("{}: {error}", source.display()))?;
     let relative = |path: &Path| path.strip_prefix(&root).unwrap_or(path).to_owned();
     let mut documents = Vec::new();
     for path in &files {
-        let Some(format) = formats::of(path) else {
+        let read = workspace::read(&root, path, &scanned).map_err(|error| format!("{}: {error}", path.display()))?;
+        let Some(linked) = read else {
             continue;
         };
-        let text = std::fs::read_to_string(path).map_err(|error| format!("{}: {error}", path.display()))?;
-        documents.push(format.read(relative(path), text));
+        documents.push(linked);
     }
     let exported: Vec<PathBuf> = files.iter().map(|path| relative(path)).collect();
     let workspace = Workspace {
@@ -269,6 +270,22 @@ mod tests {
         assert_eq!(std::fs::read_to_string(output.join("a.md")).unwrap(), "See lint.\n");
         assert_eq!(std::fs::read_to_string(output.join("nested/b.txt")).unwrap(), "[c](lynk:a.b)\n");
         assert!(!output.join("elsewhere.md").exists());
+    }
+
+    #[test]
+    fn copies_the_files_lynkignore_lists_as_they_are() {
+        let root = scratch_directory("unscanned-root");
+        let output = scratch_directory("unscanned-output").join("out");
+        std::fs::create_dir_all(root.join("docs")).unwrap();
+        std::fs::write(root.join(".lynkignore"), "b.md\n").unwrap();
+        std::fs::write(root.join("docs/a.md"), "[lint](lynk:lynk.lint)\n").unwrap();
+        std::fs::write(root.join("docs/b.md"), "[lint](lynk:lynk.lint)\n").unwrap();
+        export_directory(&root, Path::new("docs"), &output).unwrap();
+        assert_eq!(std::fs::read_to_string(output.join("a.md")).unwrap(), "lint\n");
+        assert_eq!(
+            std::fs::read_to_string(output.join("b.md")).unwrap(),
+            "[lint](lynk:lynk.lint)\n"
+        );
     }
 
     #[test]

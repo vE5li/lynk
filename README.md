@@ -20,6 +20,12 @@ Every variant maps to a single opcode in the VM:
 It reads the file types [`lynk::formats`](lynk:rust.module) lists:
 documentation whole, source code only in its comments.
 
+A [`.lynkignore`](lynk:rust.literal (lynk::workspace::IGNORE_FILE_NAME))
+file lists, as a `.gitignore` file does, what is not scanned for links
+in the directory holding it and below it: the links written there are
+neither checked nor exported, but what it holds may still be linked to.
+Ignored and hidden files, on the other hand, are left out entirely.
+
 ## Commands
 
 `lynk [--root <directory>] <command>`; without `--root`, the repository
