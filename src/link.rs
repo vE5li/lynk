@@ -26,6 +26,10 @@ pub struct Link {
     /// An argument after them taken whole, such as a Markdown link's text,
     /// for selectors taking any.
     pub last_argument: Option<String>,
+    /// Where its text is written, in the document's prose, for a link
+    /// written as a Markdown link to `lynk:`: what stays of it once
+    /// exported, unless a plain link can replace it.
+    pub text: Option<Range<usize>>,
     /// A map's body, in the document's prose.
     pub body: Option<Range<usize>>,
     /// The links inside it, at any depth.
@@ -212,6 +216,7 @@ mod tests {
             selector_name: "a.b".to_owned(),
             arguments: arguments.to_owned(),
             last_argument: last_argument.map(str::to_owned),
+            text: None,
             body,
             nested: Vec::new(),
             range: 0..0,

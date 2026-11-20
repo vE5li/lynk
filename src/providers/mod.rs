@@ -43,6 +43,21 @@ pub trait Query: Debug {
     fn check_target(&self, _workspace: &Workspace) -> Vec<String> {
         Vec::new()
     }
+    /// Where a plain Markdown link to its single target leads, for a
+    /// target renderers can follow one to; `None` for any other.
+    fn plain_link(&self, _workspace: &Workspace) -> Option<PlainLink> {
+        None
+    }
+}
+
+/// A target as a plain Markdown link names it: a path relative to the
+/// root, and maybe a section's anchor.
+#[derive(Debug, PartialEq, Eq)]
+pub struct PlainLink {
+    pub path: PathBuf,
+    /// Whether the path names a directory.
+    pub directory: bool,
+    pub anchor: Option<String>,
 }
 
 pub const PROVIDERS: &[&dyn Provider] = &[

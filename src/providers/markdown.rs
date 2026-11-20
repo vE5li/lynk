@@ -8,7 +8,7 @@ use crate::document::Document;
 use crate::formats::markdown::NAME;
 use crate::link::Shape;
 use crate::location::{LineIndex, Span};
-use crate::providers::{Place, Provider, Query, normalize};
+use crate::providers::{Place, PlainLink, Provider, Query, normalize};
 use crate::workspace::Workspace;
 
 pub struct Markdown;
@@ -67,23 +67,45 @@ impl Query for MarkdownQuery {
             Self::Line { file, text } => resolve_line(workspace, file.as_deref(), text),
         }
     }
+
+    fn plain_link(&self, workspace: &Workspace) -> Option<PlainLink> {
+        let Self::Section { file, heading } = self else {
+            return None;
+        };
+        let [(document, _, anchor)] = <[_; 1]>::try_from(sections(workspace, file.as_deref(), heading)).ok()?;
+        Some(PlainLink {
+            path: document.path.clone(),
+            directory: false,
+            anchor: Some(anchor),
+        })
+    }
 }
 
 fn resolve_section(workspace: &Workspace, file: Option<&Path>, heading: &str) -> Vec<Span> {
-    let mut spans = Vec::new();
+    sections(workspace, file, heading)
+        .into_iter()
+        .map(|(document, heading_index, _)| document.span(section_range(document, heading_index)))
+        .collect()
+}
+
+/// The sections named [`heading`](lynk:rust.argument), by its text or its
+/// anchor, in [`file`](lynk:rust.argument) or any file without one: their
+/// documents, the indices of their headings and their anchors.
+fn sections<'a>(workspace: &'a Workspace, file: Option<&Path>, heading: &str) -> Vec<(&'a Document, usize, String)> {
+    let mut sections = Vec::new();
     for linked in &workspace.documents {
         let document = &linked.document;
         if file.is_some_and(|file| file != document.path) {
             continue;
         }
         let anchors = anchors(document);
-        for (heading_index, candidate) in document.headings.iter().enumerate() {
-            if candidate.text.trim() == heading || anchors[heading_index] == heading {
-                spans.push(document.span(section_range(document, heading_index)));
+        for (heading_index, (candidate, anchor)) in document.headings.iter().zip(anchors).enumerate() {
+            if candidate.text.trim() == heading || anchor == heading {
+                sections.push((document, heading_index, anchor));
             }
         }
     }
-    spans
+    sections
 }
 
 /// The anchor of each heading of [`document`](lynk:rust.argument), as GitHub

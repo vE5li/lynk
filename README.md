@@ -46,8 +46,11 @@ is the nearest directory up holding `.jj` or `.git`.
   relative to its root, to an output directory, given as an absolute path
   outside it, as the readers of their rendered text see them: links' text
   and maps' bodies stay, the rest of their syntax and the lines left
-  holding nothing else go. Files no format reads are copied as they are;
-  ignored and hidden ones are left out, as everywhere else.
+  holding nothing else go. In Markdown files, a link to a file, a
+  directory or a section the export holds becomes the plain link leading
+  to it, as [Plain links first](#plain-links-first) writes them. Files no
+  format reads are copied as they are; ignored and hidden ones are left
+  out, as everywhere else.
 <!-- /lynk -->
 
 [`resolve`](lynk:lynk.resolve) and [`backlinks`](lynk:lynk.backlinks)
@@ -146,7 +149,9 @@ any query left out. A path ending with `/`, `.` or `..` is a
 `filesystem.directory`, any other a `filesystem.file`; a fragment makes it
 a `markdown.section` of a Markdown file, the one the link is written in
 when there is no path, and is ignored in other files. Such links stay
-links once exported. Destinations with a scheme, such as `https:`, are
+links once exported, and `lynk:` links to such a target become plain
+links relative to the file they are written in, when the export holds
+the target. Destinations with a scheme, such as `https:`, are
 left alone, as are paths in source code comments, whose tools read them
 their own way.
 

@@ -5,7 +5,7 @@ use std::path::{Path, PathBuf};
 
 use crate::link::{Member, Shape};
 use crate::location::Span;
-use crate::providers::{MemberError, Place, Provider, Query, check_complete_map, single_path};
+use crate::providers::{MemberError, Place, PlainLink, Provider, Query, check_complete_map, single_path};
 use crate::workspace::Workspace;
 
 pub const NAME: &str = "filesystem";
@@ -66,6 +66,20 @@ impl Query for FilesystemQuery {
             Self::MapEntry { path } => check_complete_map(members, &directory_entries(&workspace.root.join(path))),
             _ => Vec::new(),
         }
+    }
+
+    fn plain_link(&self, workspace: &Workspace) -> Option<PlainLink> {
+        let (path, directory) = match self {
+            Self::File { path } => (path, false),
+            Self::Directory { path } => (path, true),
+            Self::MapEntry { .. } => return None,
+        };
+        self.resolve(workspace).first()?;
+        Some(PlainLink {
+            path: path.clone(),
+            directory,
+            anchor: None,
+        })
     }
 }
 

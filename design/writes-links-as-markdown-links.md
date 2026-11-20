@@ -24,7 +24,10 @@ to the file the link is written in
 ([`lynk::formats::markdown::links::find_path_links`](lynk:rust.item)).
 Where such a link can name the target, it is preferred over a `lynk:`
 link ([Plain links first](../README.md#plain-links-first)). Its syntax
-stays when exported, since it works as a link anywhere. Source code
+stays when exported, since it works as a link anywhere, and a `lynk:`
+link to such a target becomes one when the export holds the target
+([`lynk::providers::Query::plain_link`](lynk:rust.item)), so the
+exported text links wherever a plain link can. Source code
 comments are left out: their tools give destinations meanings of
 their own, such as rustdoc's paths to items.
 
@@ -82,3 +85,8 @@ stale no more silently than lynk's own, without rewriting them.
   on others, and the link's meaning on what happens to exist.
 - **Maps as links**, their body in the link text: Markdown link text
   cannot hold a list.
+- **Exporting every link as a plain link to its file**, with a line
+  fragment such as `#L10-L20`: only some hosts' file views follow such
+  fragments, a rendered Markdown file has no lines to scroll to, and a
+  link to a whole file would name a part of it the reader still has to
+  find.
