@@ -1,10 +1,13 @@
 //! Links as Markdown writes them, in Markdown files and in every format
-//! whose prose is Markdown.
+//! whose prose is Markdown, plus plain path links in Markdown files.
 
 use std::ops::Range;
+use std::path::{Component, Path, PathBuf};
 
+use super::NAME;
 use super::parse::{Definition, MarkdownLink};
 use crate::document::Document;
+use crate::formats;
 use crate::link::{Found, Link, SyntaxError};
 
 /// What a Markdown link's destination starts with to be a link to check.
@@ -14,6 +17,10 @@ const COMMENT_CLOSING: &str = "-->";
 /// The word opening a map's comment.
 const MAP_KEYWORD: &str = "lynk";
 const MAP_CLOSING: &str = "<!-- /lynk -->";
+/// What separates a path link's fragment from its path.
+const FRAGMENT: char = '#';
+/// What separates a path link's query from its path.
+const QUERY: char = '?';
 
 /// Every link of the document's prose outside code, plus what failed to
 /// parse. [`markdown_links`](lynk:rust.argument) and
@@ -22,6 +29,9 @@ const MAP_CLOSING: &str = "<!-- /lynk -->";
 pub fn find(document: &Document, markdown_links: &[MarkdownLink], definitions: &[Definition]) -> Found {
     let mut found = Found::default();
     find_markdown_links(markdown_links, &mut found);
+    if document.format == NAME {
+        find_path_links(document, markdown_links, &mut found);
+    }
     find_maps(document, &mut found);
     // Rendering hides every definition; those of links are their syntax.
     found.syntax.extend(
@@ -60,6 +70,117 @@ fn find_markdown_links(markdown_links: &[MarkdownLink], found: &mut Found) {
             range: markdown_link.range.clone(),
         });
     }
+}
+
+/// The Markdown links whose destination is a path, as renderers resolve
+/// it: relative to the file the link is written in, or to the root when it
+/// starts with `/`. A fragment names a section of a Markdown file, the one
+/// the link is written in without a path, and is ignored in other files; a
+/// path ending with `/`, `.` or `..` names a directory, any other a file. Their
+/// syntax stays, as it is the reader's too.
+fn find_path_links(document: &Document, markdown_links: &[MarkdownLink], found: &mut Found) {
+    for markdown_link in markdown_links {
+        let destination = markdown_link.destination.as_str();
+        if destination.is_empty() || has_scheme(destination) || destination.starts_with("//") {
+            continue;
+        }
+        let (destination, fragment) = destination.split_once(FRAGMENT).unwrap_or((destination, ""));
+        let destination = destination.split_once(QUERY).map_or(destination, |(path, _)| path);
+        let (path, fragment) = (percent_decode(destination), percent_decode(fragment));
+        if path.is_empty() && fragment.is_empty() {
+            continue;
+        }
+        let resolved = match path.is_empty() {
+            true => Some(document.path.clone()),
+            false => resolve_path(&document.path, &path),
+        };
+        let Some(resolved) = resolved else {
+            found.errors.push(SyntaxError {
+                message: "a link's path leaves the repository".to_owned(),
+                offset: markdown_link.range.start,
+            });
+            continue;
+        };
+        let resolved = resolved.to_string_lossy().into_owned();
+        let names_markdown = formats::of(Path::new(&resolved)).is_some_and(|format| format.name() == NAME);
+        let (selector_name, arguments) = if !fragment.is_empty() && names_markdown {
+            ("markdown.section", vec![resolved, fragment])
+        } else if path.ends_with('/') || Path::new(&path).file_name().is_none() {
+            ("filesystem.directory", vec![resolved])
+        } else {
+            ("filesystem.file", vec![resolved])
+        };
+        found.links.push(Link {
+            selector_name: selector_name.to_owned(),
+            arguments: arguments.iter().map(|argument| quote(argument)).collect::<Vec<_>>().join(" "),
+            last_argument: None,
+            body: None,
+            nested: Vec::new(),
+            range: markdown_link.range.clone(),
+        });
+    }
+}
+
+/// Whether [`destination`](lynk:rust.argument) starts with a URL scheme,
+/// such as `https:` or `mailto:`.
+fn has_scheme(destination: &str) -> bool {
+    let Some((scheme, _)) = destination.split_once(':') else {
+        return false;
+    };
+    let mut characters = scheme.chars();
+    characters.next().is_some_and(|first| first.is_ascii_alphabetic())
+        && characters.all(|character| character.is_ascii_alphanumeric() || "+.-".contains(character))
+}
+
+/// [`text`](lynk:rust.argument) with its `%XX` escapes decoded; one not
+/// making UTF-8 is kept as written.
+fn percent_decode(text: &str) -> String {
+    let bytes = text.as_bytes();
+    let mut decoded = Vec::with_capacity(bytes.len());
+    let mut index = 0;
+    while index < bytes.len() {
+        let escaped = (bytes[index] == b'%')
+            .then(|| text.get(index + 1..index + 3))
+            .flatten()
+            .and_then(|hex| u8::from_str_radix(hex, 16).ok());
+        let Some(byte) = escaped else {
+            decoded.push(bytes[index]);
+            index += 1;
+            continue;
+        };
+        decoded.push(byte);
+        index += 3;
+    }
+    String::from_utf8(decoded).unwrap_or_else(|_| text.to_owned())
+}
+
+/// [`path`](lynk:rust.argument) relative to the root, as written in the
+/// file at [`document`](lynk:rust.argument); `None` when it leaves the
+/// root.
+fn resolve_path(document: &Path, path: &str) -> Option<PathBuf> {
+    let (base, path) = match path.strip_prefix('/') {
+        Some(path) => (Path::new(""), path),
+        None => (document.parent().unwrap_or(Path::new("")), path),
+    };
+    let mut resolved = PathBuf::new();
+    for component in base.join(path).components() {
+        match component {
+            Component::Normal(name) => resolved.push(name),
+            Component::ParentDir if resolved.pop() => {}
+            Component::CurDir => {}
+            _ => return None,
+        }
+    }
+    if resolved.as_os_str().is_empty() {
+        resolved.push(".");
+    }
+    Some(resolved)
+}
+
+/// [`argument`](lynk:rust.argument) quoted as a link's arguments are.
+fn quote(argument: &str) -> String {
+    let escaped = argument.replace('\\', "\\\\").replace('"', "\\\"");
+    format!("\"{escaped}\"")
 }
 
 /// The maps written between an opening `<!-- lynk <provider>.<selector>
@@ -254,6 +375,55 @@ mod tests {
         let (links, errors) = links_in("[web](https://example.com) `[a](lynk:a.b)`\n\n```\n[c](lynk:c.d)\n```\n");
         assert!(links.is_empty());
         assert!(errors.is_empty());
+    }
+
+    fn path_links_in(path: &str, text: &str) -> Vec<(String, Vec<String>)> {
+        let linked = read(path, text);
+        assert!(linked.syntax_errors.is_empty(), "{:?}", linked.syntax_errors);
+        assert!(linked.link_syntax.is_empty());
+        linked
+            .links
+            .iter()
+            .map(|link| (link.selector_name.clone(), arguments_of(text, link)))
+            .collect()
+    }
+
+    #[test]
+    fn reads_paths_relative_to_the_file_or_the_root() {
+        let text = "[a](b.md) [c](../flake.nix) [d](/src/main.rs?plain=1) [e](sub/) [f](..) [g](a%20b.txt)\n\n[h]: \"q\".rs\n[h][]";
+        let file = |path: &str| ("filesystem.file".to_owned(), vec![path.to_owned()]);
+        let directory = |path: &str| ("filesystem.directory".to_owned(), vec![path.to_owned()]);
+        assert_eq!(path_links_in("docs/x.md", text), vec![
+            file("docs/b.md"),
+            file("flake.nix"),
+            file("src/main.rs"),
+            directory("docs/sub"),
+            directory("."),
+            file("docs/a b.txt"),
+            file("docs/\"q\".rs"),
+        ]);
+    }
+
+    #[test]
+    fn reads_fragments_as_sections_of_markdown_files() {
+        let text = "[a](#Commands) [b](../README.md#link-syntax) [c](main.rs#L10) [d](#)";
+        let section = |path: &str, heading: &str| ("markdown.section".to_owned(), vec![path.to_owned(), heading.to_owned()]);
+        assert_eq!(path_links_in("docs/x.md", text), vec![
+            section("docs/x.md", "Commands"),
+            section("README.md", "link-syntax"),
+            ("filesystem.file".to_owned(), vec!["docs/main.rs".to_owned()]),
+        ]);
+    }
+
+    #[test]
+    fn ignores_urls_and_path_links_outside_markdown_files() {
+        assert!(path_links_in("x.md", "[a](https://a.b) [b](mailto:a@b.c) [c](//a.b/c) `[d](e)`").is_empty());
+        assert!(read("x.rs", "/// [`Bar`](Bar)\nstruct Foo;\n").links.is_empty());
+    }
+
+    #[test]
+    fn reports_a_path_leaving_the_repository() {
+        assert_eq!(links_in("[a](../a.md)").1.len(), 1);
     }
 
     #[test]

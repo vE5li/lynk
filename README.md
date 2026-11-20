@@ -88,6 +88,24 @@ holding the selector and arguments:
 [lint]: lynk:lynk.lint
 ```
 
+In Markdown files, a link whose destination is a path, as renderers
+resolve it, is checked too: relative to the file it is written in, or to
+the repository's root when it starts with `/`, its `%` escapes decoded and
+any query left out. A path ending with `/`, `.` or `..` is a
+`filesystem.directory`, any other a `filesystem.file`; a fragment makes it
+a `markdown.section` of a Markdown file, the one the link is written in
+when there is no path, and is ignored in other files. Such links stay
+links once exported. Destinations with a scheme, such as `https:`, are
+left alone, as are paths in source code comments, whose tools read them
+their own way:
+
+```
+[flake.nix](../flake.nix)
+[design](/design/)
+[Commands](#commands)
+[Link syntax](README.md#Link%20syntax)
+```
+
 *Map* selectors list the members of their target in a body, a Markdown
 list of `- <member>: <description>` items between an opening
 `<!-- lynk <provider.selector> <arguments> -->` comment and a closing
@@ -130,7 +148,7 @@ included, holds the link. Rust items are named by their paths as Rust
 writes them, starting with the crate:
 
 <!-- lynk lynk.selectors -->
-- `markdown.section`: `[file] "<heading>"`, the section under a heading
+- `markdown.section`: `[file] "<heading>"`, the section under a heading, named by its text or by its anchor as GitHub writes it: lowercased, spaces as hyphens, other punctuation than `-` and `_` dropped, and a repeated one followed by `-1`, `-2` and so on
 - `markdown.line`: `[file] "<text>"`, a line containing the text
 - `filesystem.file`: `<path>`
 - `filesystem.directory`: `<path>`

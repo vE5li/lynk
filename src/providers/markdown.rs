@@ -1,5 +1,6 @@
 //! The sections and lines of Markdown files.
 
+use std::collections::{HashMap, HashSet};
 use std::ops::Range;
 use std::path::{Path, PathBuf};
 
@@ -75,13 +76,46 @@ fn resolve_section(workspace: &Workspace, file: Option<&Path>, heading: &str) ->
         if file.is_some_and(|file| file != document.path) {
             continue;
         }
+        let anchors = anchors(document);
         for (heading_index, candidate) in document.headings.iter().enumerate() {
-            if candidate.text.trim() == heading {
+            if candidate.text.trim() == heading || anchors[heading_index] == heading {
                 spans.push(document.span(section_range(document, heading_index)));
             }
         }
     }
     spans
+}
+
+/// The anchor of each heading of [`document`](lynk:rust.argument), as GitHub
+/// writes them: lowercased, spaces as hyphens, punctuation dropped, and a
+/// repeated one numbered.
+fn anchors(document: &Document) -> Vec<String> {
+    let mut taken = HashSet::new();
+    let mut repeats: HashMap<String, usize> = HashMap::new();
+    let mut anchors = Vec::new();
+    for heading in &document.headings {
+        let base: String = heading
+            .text
+            .trim()
+            .to_lowercase()
+            .chars()
+            .filter_map(|character| match character {
+                ' ' => Some('-'),
+                '-' | '_' => Some(character),
+                _ if character.is_alphanumeric() => Some(character),
+                _ => None,
+            })
+            .collect();
+        let mut anchor = base.clone();
+        while taken.contains(&anchor) {
+            let repeat = repeats.entry(base.clone()).or_default();
+            *repeat += 1;
+            anchor = format!("{base}-{repeat}");
+        }
+        taken.insert(anchor.clone());
+        anchors.push(anchor);
+    }
+    anchors
 }
 
 fn resolve_line(workspace: &Workspace, file: Option<&Path>, text: &str) -> Vec<Span> {
@@ -108,6 +142,7 @@ fn resolve_line(workspace: &Workspace, file: Option<&Path>, text: &str) -> Vec<S
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::formats;
     use crate::providers::tests::{assert_query, read_first_link};
 
     #[test]
@@ -127,6 +162,28 @@ mod tests {
             file: Some(PathBuf::from("docs/b.md")),
             text: "A line".to_owned(),
         });
+    }
+
+    #[test]
+    fn a_section_is_named_by_its_heading_or_its_anchor() {
+        let path = "docs/a.md";
+        let text = "# Link `syntax`!\n\n## Notes\n\n## Notes\n";
+        let documents = vec![formats::of(Path::new(path)).unwrap().read(PathBuf::from(path), text.to_owned())];
+        let workspace = Workspace {
+            root: PathBuf::new(),
+            documents,
+        };
+        let lines = |heading: &str| -> Vec<usize> {
+            resolve_section(&workspace, Some(Path::new(path)), heading)
+                .iter()
+                .map(|span| span.start.line)
+                .collect()
+        };
+        assert_eq!(lines("Link syntax!"), vec![1]);
+        assert_eq!(lines("link-syntax"), vec![1]);
+        assert_eq!(lines("notes"), vec![3]);
+        assert_eq!(lines("notes-1"), vec![5]);
+        assert!(lines("Link-syntax").is_empty());
     }
 
     #[test]

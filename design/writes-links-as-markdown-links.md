@@ -17,6 +17,15 @@ every argument is written once, and what the reader sees is the name of
 the target ([`lynk::link::Link::read`](lynk:rust.item)). A selector
 taking no arguments ignores the text.
 
+In Markdown files, a link whose destination is a path rather than a URL
+is read as the selector conventional renderers would follow it to: a file,
+a directory, or a section by its heading or its anchor, the path relative
+to the file the link is written in
+([`lynk::formats::markdown::links::find_path_links`](lynk:rust.item)).
+Its syntax stays when exported, since it works as a link anywhere. Source
+code comments are left out: their tools give destinations meanings of
+their own, such as rustdoc's paths to items.
+
 A map is a plain Markdown list between two HTML comments, the opening one
 holding [`lynk`](lynk:rust.literal (lynk::formats::markdown::links::MAP_KEYWORD)),
 the selector and its arguments, the closing one
@@ -49,6 +58,10 @@ ends, across line breaks, inside lists and in source comments read as
 Markdown, so wrapping a link like the prose around it, as formatters do,
 needs no rule of ours.
 
+Plain path links are what editors complete, renderers follow and other
+tools write; checking them too means a repository's existing links go
+stale no more silently than lynk's own, without rewriting them.
+
 ## Alternatives
 
 - **The former `<[<provider>.<selector> <arguments>]>` syntax**: needed
@@ -60,5 +73,10 @@ needs no rule of ours.
 - **A free link text, with every argument in the title**: lets the text
   read naturally in any sentence, but writes the target's name twice
   whenever the text is that name, which is most of the time.
+- **Leaving path links unchecked**: keeps one way of writing a link, but
+  leaves the links most repositories already have to rot unnoticed.
+- **Telling files from directories by the filesystem** when reading a
+  link: would accept `[design](design)`, but reading a file would depend
+  on others, and the link's meaning on what happens to exist.
 - **Maps as links**, their body in the link text: Markdown link text
   cannot hold a list.
