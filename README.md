@@ -186,32 +186,34 @@ included, holds the link. Rust items are named by their paths as Rust
 writes them, starting with the crate:
 
 <!-- lynk lynk.selectors -->
-- `markdown.section`: `[file] "<heading>"`, the section under a heading, named by its text or by its anchor as GitHub writes it: lowercased, spaces as hyphens, other punctuation than `-` and `_` dropped, and a repeated one followed by `-1`, `-2` and so on
-- `markdown.line`: `[file] "<text>"`, a line containing the text
-- `filesystem.file`: `<path>`
-- `filesystem.directory`: `<path>`
-- `filesystem.map-entry`: `<directory>`, its entries except hidden and ignored ones, ordered by their names' bytes
-- `rust.module`: `<module path>`, the crate alone being its root
-- `rust.item`: `<item path>`, any item but a module or an import, its attributes and doc comment included; an associated item's path goes through its type or trait, a variant's through its enum
-- `rust.literal`: `<item path> <value>`, a constant or static, as `rust.item` names it, whose value is a literal stating that value; its value is compared, not how it is written, so `16` states `0x10`, and a text states a string or character as it is or written as a Rust literal
-- `rust.argument`: `[function path] <argument>`, an argument of a function, `self` for its receiver; a method's path goes through its type or trait
-- `rust.comment`: `[file] "<text>"`, the comments holding the text, a run of comment lines on consecutive lines being one comment whose lines read as one text; the links in it are left out, so a link never matches its own comment
-- `rust.map-variant`: `<enum path>`, its variants; when its definitions list different variants, or in another order, ordered by their names' bytes
-- `rust.map-variant-snake-case`: `<enum path>`, its variants named in snake case, `NotStarted` as `not_started`, ordered as `rust.map-variant` orders variants
-- `rust.map-field`: `<struct or variant path>`, the fields of a struct or variant declaring them by name, ordered as `rust.map-variant` orders variants; a variant's path goes through its enum
-- `wit.function`: `<file> <function>`, the functions with that name in its interfaces and worlds; a resource's as `<resource>.<function>`, its constructor as `<resource>.constructor`
-- `protobuf.message`: `<file> <message>`, from its keyword to its closing brace; a nested message's as `<outer>.<message>`, without the package
-- `protobuf.map-field`: `<file> <message>`, its fields, those of its `oneof`s included where they are declared; a nested message's as `<outer>.<message>`
-- `cargo.dependency`: `<manifest> <dependency>`, the dependencies declared under that key in its package's, platforms' and workspace's tables, from the key or the table's header to the end of its last value
-- `nix.dev-shell-command`: `<file> <command>`, the bindings building a command, named by a string they apply a function to or the `name` of an attribute set they apply it to, that a dev shell lists among what it puts on `PATH`, from the binding's name to the end of its value
-- `lynk.selectors`: no arguments; a complete map of these selectors
-- `lynk.self`: no arguments; the tool itself
-- `lynk.lint`: no arguments; its command checking every link
-- `lynk.resolve`: no arguments; its command resolving a link
-- `lynk.backlinks`: no arguments; its command listing the links to a target
-- `lynk.affected`: no arguments; its command listing the links to what a diff changes
-- `lynk.context`: no arguments; its command searching the documentation by words
-- `lynk.export`: no arguments; its command writing a directory without its links
+| Selector | Arguments | Target |
+| --- | --- | --- |
+| `markdown.section` | `[file] "<heading>"` | the section under a heading, named by its text or by its anchor as GitHub writes it: lowercased, spaces as hyphens, other punctuation than `-` and `_` dropped, and a repeated one followed by `-1`, `-2` and so on |
+| `markdown.line` | `[file] "<text>"` | a line containing the text |
+| `filesystem.file` | `<path>` | the file |
+| `filesystem.directory` | `<path>` | the directory |
+| `filesystem.map-entry` | `<directory>` | its entries except hidden and ignored ones, ordered by their names' bytes |
+| `rust.module` | `<module path>` | the module, the crate alone being its root |
+| `rust.item` | `<item path>` | any item but a module or an import, its attributes and doc comment included; an associated item's path goes through its type or trait, a variant's through its enum |
+| `rust.literal` | `<item path> <value>` | a constant or static, as `rust.item` names it, whose value is a literal stating that value; its value is compared, not how it is written, so `16` states `0x10`, and a text states a string or character as it is or written as a Rust literal |
+| `rust.argument` | `[function path] <argument>` | an argument of a function, `self` for its receiver; a method's path goes through its type or trait |
+| `rust.comment` | `[file] "<text>"` | the comments holding the text, a run of comment lines on consecutive lines being one comment whose lines read as one text; the links in it are left out, so a link never matches its own comment |
+| `rust.map-variant` | `<enum path>` | its variants; when its definitions list different variants, or in another order, ordered by their names' bytes |
+| `rust.map-variant-snake-case` | `<enum path>` | its variants named in snake case, `NotStarted` as `not_started`, ordered as `rust.map-variant` orders variants |
+| `rust.map-field` | `<struct or variant path>` | the fields of a struct or variant declaring them by name, ordered as `rust.map-variant` orders variants; a variant's path goes through its enum |
+| `wit.function` | `<file> <function>` | the functions with that name in its interfaces and worlds; a resource's as `<resource>.<function>`, its constructor as `<resource>.constructor` |
+| `protobuf.message` | `<file> <message>` | the message, from its keyword to its closing brace; a nested message's as `<outer>.<message>`, without the package |
+| `protobuf.map-field` | `<file> <message>` | its fields, those of its `oneof`s included where they are declared; a nested message's as `<outer>.<message>` |
+| `cargo.dependency` | `<manifest> <dependency>` | the dependencies declared under that key in its package's, platforms' and workspace's tables, from the key or the table's header to the end of its last value |
+| `nix.dev-shell-command` | `<file> <command>` | the bindings building a command, named by a string they apply a function to or the `name` of an attribute set they apply it to, that a dev shell lists among what it puts on `PATH`, from the binding's name to the end of its value |
+| `lynk.selectors` | none | a complete map of these selectors |
+| `lynk.self` | none | the tool itself |
+| `lynk.lint` | none | its command checking every link |
+| `lynk.resolve` | none | its command resolving a link |
+| `lynk.backlinks` | none | its command listing the links to a target |
+| `lynk.affected` | none | its command listing the links to what a diff changes |
+| `lynk.context` | none | its command searching the documentation by words |
+| `lynk.export` | none | its command writing a directory without its links |
 <!-- /lynk -->
 
 ---
