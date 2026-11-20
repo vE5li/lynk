@@ -243,6 +243,12 @@ mod tests {
     }
 
     #[test]
+    fn keeps_the_table_of_a_map_without_its_comments() {
+        let text = "<!-- lynk a.b -->\n| Member | Note |\n| --- | --- |\n| c | [d](lynk:a.b) |\n<!-- /lynk -->\n";
+        assert_eq!(exported("test.md", text), "| Member | Note |\n| --- | --- |\n| c | d |\n");
+    }
+
+    #[test]
     fn drops_comment_lines_left_empty_but_keeps_code() {
         let source =
             "/// See [it](lynk:a.b\n///   (c d)).\n/// <!-- lynk a.b -->\n/// - e: f\n/// <!-- /lynk -->\nfn g() {} // [](lynk:a.b)\n";

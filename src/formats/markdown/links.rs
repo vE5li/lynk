@@ -452,6 +452,20 @@ mod tests {
     }
 
     #[test]
+    fn reads_a_map_written_as_a_table() {
+        let text =
+            "<!-- lynk rust.map-variant crate::Bar -->\n| Variant | Opcode |\n| --- | --- |\n| Load | [LD](lynk:a.b) |\n<!-- /lynk -->\n";
+        let (links, errors) = links_in(text);
+        assert!(errors.is_empty(), "{errors:?}");
+        assert_eq!(links[0].nested, vec![links[1].range.clone()]);
+        let members: Vec<_> = members(text, &links[0])
+            .into_iter()
+            .map(|member| (member.name, member.description))
+            .collect();
+        assert_eq!(members, vec![("Load".to_owned(), "[LD](lynk:a.b)".to_owned())]);
+    }
+
+    #[test]
     fn nested_maps_close_innermost_first_and_belong_to_the_member_holding_them() {
         let text = "<!-- lynk rust.* -->\n- module:\n  - Inline: [`a`](lynk:rust.module).\n  - Mapped:\n    <!-- lynk \
                     filesystem.map-entry c -->\n    - d: e\n    <!-- /lynk -->\n- unused: not used\n<!-- /lynk -->\n";
@@ -511,6 +525,19 @@ mod tests {
         assert!(linked.syntax_errors.is_empty(), "{:?}", linked.syntax_errors);
         let selectors: Vec<_> = linked.links.iter().map(|link| link.selector_name.as_str()).collect();
         assert_eq!(selectors, vec!["rust.map-variant", "a.b"]);
+        let names: Vec<_> = members(&linked.document.prose, &linked.links[0])
+            .into_iter()
+            .map(|member| member.name)
+            .collect();
+        assert_eq!(names, vec!["Load"]);
+    }
+
+    #[test]
+    fn reads_a_table_map_in_rust_comments() {
+        let source = "/// <!-- lynk rust.map-variant crate::Bar -->\n/// | Variant | Opcode |\n/// |---|---|\n/// | `Load` | LD |\n/// \
+                      <!-- /lynk -->\nenum Bar {}\n";
+        let linked = read("test.rs", source);
+        assert!(linked.syntax_errors.is_empty(), "{:?}", linked.syntax_errors);
         let names: Vec<_> = members(&linked.document.prose, &linked.links[0])
             .into_iter()
             .map(|member| member.name)

@@ -97,16 +97,29 @@ holding the selector and arguments:
 [lint]: lynk:lynk.lint
 ```
 
-*Map* selectors list the members of their target in a body, a Markdown
-list of `- <member>: <description>` items between an opening
-`<!-- lynk <provider.selector> <arguments> -->` comment and a closing
-`<!-- /lynk -->`, each starting a line and ending one. A member may be
-written as a code span, `` - `<member>`: <description> ``, before its
-colon. Both comments are
-hidden once rendered, leaving the list. A description may go on over the
-lines indented below its item, nested lists and links included; a link
-nested in a body is checked like any other, and nested maps close
+*Map* selectors list the members of their target in a body between an
+opening `<!-- lynk <provider.selector> <arguments> -->` comment and a
+closing `<!-- /lynk -->`, each starting a line and ending one. Both
+comments are hidden once rendered, leaving the body, which is either a
+Markdown list or a Markdown table. A list holds
+`- <member>: <description>` items; a description may go on over the
+lines indented below its item, nested lists and maps included. A table's
+first column holds the members, below a header row of free text, and the
+rest of each row is its description; a table is the whole body, so it
+holds no nested map. A member may be written as a code span, in either.
+A link nested in a body is checked like any other, and nested maps close
 innermost first:
+
+```
+<!-- lynk rust.map-variant cratename::foo::Bar -->
+| Variant | Opcode |
+| ------- | ------ |
+| `Load`  | LD     |
+| `Read`  | RD     |
+<!-- /lynk -->
+```
+
+A map is one of two kinds:
 
 - **`map-<member>`** is complete: every member appears exactly once, in
   the order its target defines them, so adding, removing, renaming or

@@ -162,22 +162,41 @@ fn arguments(text: &str, offset: usize) -> Result<Vec<Argument>, SyntaxError> {
     Ok(arguments)
 }
 
-/// The [`body`](lynk:rust.argument) of a map read as members: each
-/// `- <member>: <description>` line no more indented than the first, with
-/// the lines indented further below it, and the links nested in it, as part
-/// of its description. A body is prose: quotes mean nothing in it, but a
-/// member may be written as a code span.
+/// The [`body`](lynk:rust.argument) of a map read as members, from a table
+/// when its second line is a table's delimiter row, from a list otherwise.
+/// A body is prose: quotes mean nothing in it, but a member may be written
+/// as a code span.
 fn members(text: &str, body: Range<usize>, nested: &[Range<usize>]) -> Result<Vec<Member>, SyntaxError> {
+    let is_table = lines(text, body.clone())
+        .filter(|(_, line)| !line.trim().is_empty())
+        .nth(1)
+        .is_some_and(|(_, line)| is_delimiter_row(line.trim()));
+    if is_table {
+        return table_members(text, body, nested);
+    }
+    list_members(text, body, nested)
+}
+
+/// The lines of [`body`](lynk:rust.argument) in
+/// [`text`](lynk:rust.argument), each with where it starts.
+fn lines(text: &str, body: Range<usize>) -> impl Iterator<Item = (usize, &str)> {
+    text[body.clone()].split('\n').scan(body.start, |start, line| {
+        let line_start = *start;
+        *start += line.len() + 1;
+        Some((line_start, line))
+    })
+}
+
+/// The members of a body written as a list: each `- <member>:
+/// <description>` line no more indented than the first, with the lines
+/// indented further below it, and the links nested in it, as part of its
+/// description.
+fn list_members(text: &str, body: Range<usize>, nested: &[Range<usize>]) -> Result<Vec<Member>, SyntaxError> {
     let mut members: Vec<Member> = Vec::new();
     let mut member_indentation = None;
-    let mut line_start = body.start;
-    while line_start < body.end {
-        let line_end = text[line_start..body.end].find('\n').map_or(body.end, |found| line_start + found);
-        let line = &text[line_start..line_end];
-        let current_start = line_start;
-        line_start = line_end + 1;
+    for (line_start, line) in lines(text, body) {
         let indentation = line.len() - line.trim_start().len();
-        let offset = current_start + indentation;
+        let offset = line_start + indentation;
         let inside_nested = nested.iter().any(|range| range.start <= offset && offset < range.end);
         if line.trim().is_empty() {
             continue;
@@ -188,14 +207,13 @@ fn members(text: &str, body: Range<usize>, nested: &[Range<usize>]) -> Result<Ve
             continue;
         }
         let entry = line.trim().strip_prefix("- ").ok_or_else(|| SyntaxError {
-            message: "a map's body is a list of `- <member>: <description>`".to_owned(),
+            message: BODY_SYNTAX.to_owned(),
             offset,
         })?;
         member_indentation.get_or_insert(indentation);
         let name = entry.split_once(':').map_or(entry, |(name, _)| name).trim();
-        let name = name.strip_prefix('`').and_then(|name| name.strip_suffix('`')).unwrap_or(name);
         members.push(Member {
-            name: name.to_owned(),
+            name: unwrap_code_span(name).to_owned(),
             description: String::new(),
             range: offset..offset + line.trim().len(),
         });
@@ -205,6 +223,106 @@ fn members(text: &str, body: Range<usize>, nested: &[Range<usize>]) -> Result<Ve
         member.description = entry.split_once(':').map_or("", |(_, description)| description).trim().to_owned();
     }
     Ok(members)
+}
+
+/// The members of a body written as a table: after its header and
+/// delimiter rows, each row's first cell is a member and the rest of the
+/// row its description. A blank line ends the table, and with it the body.
+fn table_members(text: &str, body: Range<usize>, nested: &[Range<usize>]) -> Result<Vec<Member>, SyntaxError> {
+    let mut members = Vec::new();
+    let mut rows_seen = 0;
+    let mut ended = false;
+    for (line_start, line) in lines(text, body) {
+        let row = line.trim();
+        let offset = line_start + line.len() - line.trim_start().len();
+        let error = |message: &str| SyntaxError {
+            message: message.to_owned(),
+            offset,
+        };
+        if row.is_empty() {
+            ended = rows_seen > 0;
+            continue;
+        }
+        rows_seen += 1;
+        if ended {
+            return Err(error("a table ends a map's body"));
+        }
+        if nested.iter().any(|range| range.start <= offset && offset < range.end) {
+            return Err(error("a map's table holds no map"));
+        }
+        // Its header and delimiter rows.
+        if rows_seen <= 2 {
+            continue;
+        }
+        let cells = row_cells(row);
+        let name = cells[0].trim().replace("\\|", "|");
+        if name.is_empty() {
+            return Err(error("a row of a map's table starts with a member"));
+        }
+        let inner = row_inner(row);
+        let description = inner.get(cells[0].len() + 1..).unwrap_or("").trim();
+        members.push(Member {
+            name: unwrap_code_span(&name).to_owned(),
+            description: description.to_owned(),
+            range: offset..offset + row.len(),
+        });
+    }
+    Ok(members)
+}
+
+const BODY_SYNTAX: &str = "a map's body is a list of `- <member>: <description>` or a table whose first column holds the members";
+
+/// [`name`](lynk:rust.argument) without the backticks of a code span
+/// around it.
+fn unwrap_code_span(name: &str) -> &str {
+    name.strip_prefix('`').and_then(|name| name.strip_suffix('`')).unwrap_or(name)
+}
+
+/// Whether [`row`](lynk:rust.argument), trimmed, is a table's delimiter
+/// row: cells such as `---`, `:--`, `--:` or `:-:`, separated by pipes.
+fn is_delimiter_row(row: &str) -> bool {
+    row.contains('|')
+        && row_cells(row).iter().all(|cell| {
+            let cell = cell.trim();
+            let dashes = cell.strip_prefix(':').unwrap_or(cell);
+            let dashes = dashes.strip_suffix(':').unwrap_or(dashes);
+            !dashes.is_empty() && dashes.chars().all(|character| character == '-')
+        })
+}
+
+/// [`row`](lynk:rust.argument), trimmed, without the pipes it may start and
+/// end with.
+fn row_inner(row: &str) -> &str {
+    let row = row.strip_prefix('|').unwrap_or(row);
+    match row.strip_suffix('|') {
+        Some(inner) if !inner.ends_with('\\') => inner,
+        _ => row,
+    }
+}
+
+/// The cells of [`row`](lynk:rust.argument), trimmed, separated by the
+/// pipes not escaped as `\|`, untrimmed.
+fn row_cells(row: &str) -> Vec<&str> {
+    let inner = row_inner(row);
+    let mut cells = Vec::new();
+    let mut cell_start = 0;
+    let mut escaped = false;
+    for (index, character) in inner.char_indices() {
+        if escaped {
+            escaped = false;
+            continue;
+        }
+        match character {
+            '\\' => escaped = true,
+            '|' => {
+                cells.push(&inner[cell_start..index]);
+                cell_start = index + 1;
+            }
+            _ => {}
+        }
+    }
+    cells.push(&inner[cell_start..]);
+    cells
 }
 
 #[cfg(test)]
@@ -291,6 +409,42 @@ mod tests {
             .map(|member| (member.name.as_str(), member.description.as_str()))
             .collect();
         assert_eq!(members, vec![("a", "`b`"), ("c", "")]);
+    }
+
+    fn names_and_descriptions(prose: &str) -> Result<Vec<(String, String)>, SyntaxError> {
+        let (_, members) = link("", None, Some(0..prose.len())).read(prose, MAP)?;
+        Ok(members.into_iter().map(|member| (member.name, member.description)).collect())
+    }
+
+    fn pairs(pairs: &[(&str, &str)]) -> Vec<(String, String)> {
+        pairs.iter().map(|(a, b)| ((*a).to_owned(), (*b).to_owned())).collect()
+    }
+
+    #[test]
+    fn reads_a_table_of_members_from_its_first_column() {
+        let prose = "| Variant | Opcode | Note |\n| --- | :-: | --- |\n| `Load` | LD | [a](lynk:a.b) |\n| Read | RD |  |\n";
+        assert_eq!(
+            names_and_descriptions(prose).unwrap(),
+            pairs(&[("Load", "LD | [a](lynk:a.b)"), ("Read", "RD |")])
+        );
+    }
+
+    #[test]
+    fn reads_table_rows_without_outer_pipes_and_with_escaped_ones() {
+        let prose = "Member | Description\n--- | ---\na\\|b | c \\| d\ne\n";
+        assert_eq!(names_and_descriptions(prose).unwrap(), pairs(&[("a|b", "c \\| d"), ("e", "")]));
+    }
+
+    #[test]
+    fn a_table_is_the_whole_body() {
+        for prose in [
+            "| a | b |\n| - | - |\n| c | d |\n\n| e | f |\n",
+            "| a | b |\n| - | - |\n| c | d |\n\n- e: f\n",
+            "| a | b |\n| - | - |\n|  | d |\n",
+        ] {
+            assert!(names_and_descriptions(prose).is_err(), "{prose}");
+        }
+        assert!(names_and_descriptions("- a: b\n| c | d |\n").is_err());
     }
 
     #[test]

@@ -31,7 +31,9 @@ exported text links wherever a plain link can. Source code
 comments are left out: their tools give destinations meanings of
 their own, such as rustdoc's paths to items.
 
-A map is a plain Markdown list between two HTML comments, the opening one
+A map is a plain Markdown list or table between two HTML comments, as
+[`reads-map-bodies-as-lists-or-tables.md`](reads-map-bodies-as-lists-or-tables.md)
+describes, the opening one
 holding [`lynk`](lynk:rust.literal (lynk::formats::markdown::links::MAP_KEYWORD)),
 the selector and its arguments, the closing one
 [`<!-- /lynk -->`](lynk:rust.literal (lynk::formats::markdown::links::MAP_CLOSING))
@@ -84,7 +86,7 @@ stale no more silently than lynk's own, without rewriting them.
   link: would accept `[design](design)`, but reading a file would depend
   on others, and the link's meaning on what happens to exist.
 - **Maps as links**, their body in the link text: Markdown link text
-  cannot hold a list.
+  cannot hold a list or a table.
 - **Exporting every link as a plain link to its file**, with a line
   fragment such as `#L10-L20`: only some hosts' file views follow such
   fragments, a rendered Markdown file has no lines to scroll to, and a
