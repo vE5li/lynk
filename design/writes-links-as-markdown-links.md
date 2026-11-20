@@ -22,7 +22,8 @@ is read as the selector conventional renderers would follow it to: a file,
 a directory, or a section by its heading or its anchor, the path relative
 to the file the link is written in
 ([`lynk::formats::markdown::links::find_path_links`](lynk:rust.item)).
-Its syntax stays when exported, since it works as a link anywhere. Source
+Where such a link can name the target, it is preferred over a `lynk:`
+link ([Plain links first](lynk:markdown.section (README.md))). Its syntax stays when exported, since it works as a link anywhere. Source
 code comments are left out: their tools give destinations meanings of
 their own, such as rustdoc's paths to items.
 

@@ -23,7 +23,10 @@ about specific parts of the code, it uses a *link* that
 adding or removing what it refers to fails the lint until the text is
 updated. The link syntax and every selector are defined in the README's
 [Link syntax](lynk:markdown.section (README.md)) and
-[Selectors](lynk:markdown.section (README.md)) sections.
+[Selectors](lynk:markdown.section (README.md)) sections. In Markdown
+files, a plain path link is preferred over a `lynk:` link wherever it can
+name the target, as
+[Plain links first](lynk:markdown.section (README.md)) describes.
 
 ## Following links
 
