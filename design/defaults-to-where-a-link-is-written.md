@@ -5,7 +5,7 @@
 A selector may leave out the arguments naming what holds its target when
 the link is written inside it: a Markdown file for a section, a Rust file
 for a comment, a Rust function for one of its arguments (the README's
-[Selectors](lynk:markdown.section (README.md))). The link's
+[Selectors](../README.md#selectors)). The link's
 file and first line are all a selector gets to decide
 ([`lynk::providers::Place`](lynk:rust.item)); a Rust function holds a
 link when its definition, doc comment included, does, and the innermost

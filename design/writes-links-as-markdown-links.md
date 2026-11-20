@@ -5,7 +5,7 @@
 A link is a Markdown link whose destination is
 [`lynk:`](lynk:rust.literal (lynk::formats::markdown::links::SCHEME))
 followed by `<provider>.<selector>`, as the
-README's [Link syntax](lynk:markdown.section (README.md)) describes.
+README's [Link syntax](../README.md#link-syntax) describes.
 Markdown decides where a link starts and ends, and what is code, as
 [`pulldown-cmark`](lynk:cargo.dependency (Cargo.toml)) parses it
 ([`lynk::formats::markdown::parse`](lynk:rust.module));
@@ -23,8 +23,9 @@ a directory, or a section by its heading or its anchor, the path relative
 to the file the link is written in
 ([`lynk::formats::markdown::links::find_path_links`](lynk:rust.item)).
 Where such a link can name the target, it is preferred over a `lynk:`
-link ([Plain links first](lynk:markdown.section (README.md))). Its syntax stays when exported, since it works as a link anywhere. Source
-code comments are left out: their tools give destinations meanings of
+link ([Plain links first](../README.md#plain-links-first)). Its syntax
+stays when exported, since it works as a link anywhere. Source code
+comments are left out: their tools give destinations meanings of
 their own, such as rustdoc's paths to items.
 
 A map is a plain Markdown list between two HTML comments, the opening one

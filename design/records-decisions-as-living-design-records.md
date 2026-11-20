@@ -3,7 +3,7 @@
 ## Decision
 
 Decisions about the architecture or the tooling are recorded in a
-top-level [`design`](lynk:filesystem.directory) directory, one short
+top-level [`design`](./) directory, one short
 file per decision, named after it, with three sections: *Decision* (what
 was decided), *Why* and *Alternatives* (what was discarded, and why).
 Like any text, a record links to what it is about, and states what is

@@ -18,8 +18,7 @@ The links in a WIT file's comments, plain and doc comments alike, are read
 with the reader of Rust comments
 ([`lynk::formats::rust::read`](lynk:rust.item)), not with `wit-parser`,
 as its
-[Decision](lynk:markdown.section
-  (design/reads-rust-comments-with-rustc-lexer.md)) describes.
+[Decision](reads-rust-comments-with-rustc-lexer.md#decision) describes.
 
 ## Why
 

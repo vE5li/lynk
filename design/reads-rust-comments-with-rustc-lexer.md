@@ -15,11 +15,10 @@ Markdown links, inline code and code blocks hold examples, as in Markdown
 files, and each run is one of the units [`lynk context`](lynk:lynk.context)
 searches, titled by the line of code it is about. WIT files, whose
 comments follow Rust's, are lexed the same way (their
-[Decision](lynk:markdown.section (design/reads-wit-with-wit-parser.md)));
+[Decision](reads-wit-with-wit-parser.md#decision));
 languages whose comments only look like Rust's are lexed by their own
 format, as protobuf's
-[Decision](lynk:markdown.section
-  (design/reads-protobuf-with-protox-parse.md)) describes.
+[Decision](reads-protobuf-with-protox-parse.md#decision) describes.
 
 ## Why
 
@@ -35,7 +34,7 @@ are told apart as the compiler does.
 - **[`syn`](lynk:cargo.dependency (Cargo.toml)) or
   [`proc-macro2`](lynk:cargo.dependency (Cargo.toml))**, already used to
   find modules and items
-  ([Decision](lynk:markdown.section (design/reads-rust-with-syn.md))): no
+  ([Decision](reads-rust-with-syn.md#decision)): no
   new dependency, but both drop plain comments and keep only doc comments,
   as attributes, so links in plain comments would go unchecked.
 - **A lexer of our own**: no dependency, but repeats what rustc's lexer
@@ -44,5 +43,5 @@ are told apart as the compiler does.
 The lexer's crate is versioned with rustc and gives no stability promise;
 the part used here, comment tokens, has not changed in years. It requires
 `unicode-ident` and `unicode-properties` on the same Unicode version, so
-`unicode-ident` is held back in [`Cargo.lock`](lynk:filesystem.file)
+`unicode-ident` is held back in [`Cargo.lock`](../Cargo.lock)
 until `unicode-properties` catches up.

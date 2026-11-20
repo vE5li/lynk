@@ -5,10 +5,9 @@
 Each format decides how links are written in its files, since it is the
 format that finds them when reading a file
 ([`lynk::formats::Format::read`](lynk:rust.item);
-[Decision](lynk:markdown.section
-  (design/splits-languages-into-formats-and-providers.md))). A format writes
+[Decision](splits-languages-into-formats-and-providers.md#decision)). A format writes
 them as Markdown links and maps, as
-[Link syntax](lynk:markdown.section (README.md)) describes, whenever its
+[Link syntax](../README.md#link-syntax) describes, whenever its
 prose can be read as Markdown: Markdown files, and comments and other
 prose that their own tools already render as Markdown, such as Rust's and
 WIT's, or protobuf's, which its documentation generators commonly render

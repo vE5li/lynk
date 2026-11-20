@@ -22,11 +22,10 @@ about specific parts of the code, it uses a *link* that
 [lynk](lynk:lynk.self) checks against the code, so moving, renaming,
 adding or removing what it refers to fails the lint until the text is
 updated. The link syntax and every selector are defined in the README's
-[Link syntax](lynk:markdown.section (README.md)) and
-[Selectors](lynk:markdown.section (README.md)) sections. In Markdown
-files, a plain path link is preferred over a `lynk:` link wherever it can
-name the target, as
-[Plain links first](lynk:markdown.section (README.md)) describes.
+[Link syntax](README.md#link-syntax) and
+[Selectors](README.md#selectors) sections. In Markdown files, a plain
+path link is preferred over a `lynk:` link wherever it can name the
+target, as [Plain links first](README.md#plain-links-first) describes.
 
 ## Following links
 
@@ -62,14 +61,14 @@ every place it lists, in the same change. Follow links with
 
 Add a selector only when text being written needs it and no existing
 selector fits: implement it in [lynk](lynk:lynk.self) and define it in
-its README's [Selectors](lynk:markdown.section (README.md))
+its README's [Selectors](README.md#selectors)
 in the same change, and mention it when reporting the change so it gets
 reviewed. Never add selectors in advance.
 
 ## Decisions
 
 Decisions about the architecture or the tooling are recorded in
-[`design`](lynk:filesystem.directory), following the
-[Decision](lynk:markdown.section (design/records-decisions-as-living-design-records.md))
+[`design`](design/), following the
+[Decision](design/records-decisions-as-living-design-records.md#decision)
 of the record about how they are recorded. When a decision changes,
 update its record in the same change.

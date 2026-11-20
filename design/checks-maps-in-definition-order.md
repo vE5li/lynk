@@ -3,7 +3,7 @@
 ## Decision
 
 A complete map lists its target's members in the order the target defines
-them, as the README's [Link syntax](lynk:markdown.section (README.md))
+them, as the README's [Link syntax](../README.md#link-syntax)
 states, and [`lynk lint`](lynk:lynk.lint) reports a member listed out of
 that order ([`lynk::providers::check_complete_map`](lynk:rust.item)).
 Members that are not members or are listed twice are reported as such and
@@ -22,7 +22,7 @@ defines none:
   uppercase names come before lowercase ones.
 - A Rust enum or struct defined more than once, its definitions
   disagreeing, has no order of its own;
-  [`design/orders-disagreeing-definitions-by-name.md`](lynk:filesystem.file)
+  [`design/orders-disagreeing-definitions-by-name.md`](orders-disagreeing-definitions-by-name.md)
   says how its members are ordered.
 
 A partial map, once there is one, keeps the same order.

@@ -3,7 +3,7 @@ lynk-client
 
 A Rust client of [lynk](lynk:lynk.self): it runs the command line and
 reads what it prints, offering in Rust what
-[`resources/lynk.wit`](lynk:filesystem.file) offers as a component.
+[`resources/lynk.wit`](../lynk.wit) offers as a component.
 
 Usage
 -----
@@ -23,7 +23,7 @@ problems.
 
 A link is passed as its `<provider.selector>` and its arguments, unquoted,
 as on the command line lynk's README describes under
-[Commands](lynk:markdown.section (README.md)).
+[Commands](../../README.md#commands).
 
 ### Errors
 
