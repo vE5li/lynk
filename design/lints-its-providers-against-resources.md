@@ -11,7 +11,8 @@ against real files:
 
 <!-- lynk filesystem.map-entry resources -->
 - lynk-client: a Rust crate running lynk's command line, with its
-  README, its manifest and the flake of its development environment
+  README, its manifest, and the flake and flake-parts module of its
+  development environment
 - lynk.proto: protobuf describing lynk as a service
 - lynk.wit: WIT describing lynk as a component
 <!-- /lynk -->
@@ -144,9 +145,9 @@ here, one link per way Cargo declares a dependency:
       (resources/lynk-client/Cargo.toml)).
 <!-- /lynk -->
 
-The crate's flake builds commands for its development environment, and
-each of them is linked here, one link per way a binding builds a command
-and a dev shell lists it:
+The crate's flake, and the flake-parts module next to it, build commands
+for its development environment, and each of them is linked here, one
+link per way a command is built and a dev shell lists it:
 
 <!-- lynk nix.* -->
 - dev-shell-command:
@@ -158,6 +159,14 @@ and a dev shell lists it:
   - In a list joined to another with `++`:
     [`backlinks`](lynk:nix.dev-shell-command
       (resources/lynk-client/flake.nix)).
+  - Inline in a list, in an attribute of `make-shells`:
+    [`resolve`](lynk:nix.dev-shell-command
+      (resources/lynk-client/dev-shells.nix)).
+  - Named by interpolating each name of a list a function is mapped
+    over: [`check-linux`](lynk:nix.dev-shell-command
+      (resources/lynk-client/dev-shells.nix)) and
+    [`check-macos`](lynk:nix.dev-shell-command
+      (resources/lynk-client/dev-shells.nix)).
 <!-- /lynk -->
 
 The crate's README is Markdown written as any repository may write it,
