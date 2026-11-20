@@ -55,7 +55,10 @@ Before changing, moving or removing anything, run
 [`lynk backlinks`](lynk:lynk.backlinks) on it and update the text at
 every place it lists, in the same change. Follow links with
 [`lynk resolve`](lynk:lynk.resolve) instead of searching for names. Run
-[`lynk lint`](lynk:lynk.lint) before finishing any change.
+[`lynk lint`](lynk:lynk.lint) before finishing any change. Then pipe
+`jj diff --git` into [`lynk affected`](lynk:lynk.affected), reread
+the text at every link it lists and update what the change made wrong,
+before starting the next change with `jj new`.
 
 ## Adding selectors
 
