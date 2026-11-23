@@ -148,8 +148,9 @@ here, one link per way Cargo declares a dependency:
 The crate's flake, and the flake-parts module next to it, build commands
 for its development environment, and each of them is linked here, one
 link per way a command is built and a dev shell lists it, along with
-attributes of the module, one link per way Nix binds an attribute, and
-the variables of its environment:
+attributes of the module, one link per way Nix binds an attribute, the
+variables of its environment, and what `nix run` runs, one link per way
+a flake writes it:
 
 <!-- lynk nix.* -->
 - dev-shell-command:
@@ -188,6 +189,13 @@ the variables of its environment:
   - RUST_LOG: how much it logs
   - RUST_BACKTRACE: whether it prints a backtrace on a panic
   <!-- /lynk -->
+- app:
+  - An app under a system:
+    [`lint`](lynk:nix.app (resources/lynk-client/flake.nix)).
+  - A package under a system, there being no app of its name:
+    [`default`](lynk:nix.app (resources/lynk-client/flake.nix)).
+  - An app of a flake-parts module's `perSystem`, without a system:
+    [`check`](lynk:nix.app (resources/lynk-client/dev-shells.nix)).
 <!-- /lynk -->
 
 The crate's README is Markdown written as any repository may write it,

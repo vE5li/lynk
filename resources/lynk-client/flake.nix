@@ -27,5 +27,12 @@
       buildInputs = [lint];
       packages = [client-tests] ++ [backlinks];
     };
+
+    apps.x86_64-linux.lint = {
+      type = "app";
+      program = "${lint}/bin/lint";
+    };
+
+    packages.x86_64-linux.default = client-tests;
   };
 }

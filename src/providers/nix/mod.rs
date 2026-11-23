@@ -29,6 +29,18 @@ const DEV_SHELL_INPUTS: &[&str] = &["packages", "buildInputs", "nativeBuildInput
 /// `make-shells` module declares them.
 const DEV_SHELL_ATTRIBUTES: &[&str] = &["make-shells"];
 
+/// The flake outputs `nix run` looks a name up in, in the order it tries
+/// them.
+const RUNNABLE_OUTPUTS: &[&str] = &["apps", "packages", "legacyPackages"];
+
+/// The attributes flake-parts writes flake outputs under: those of every
+/// system, and those of one.
+const FLAKE_PARTS_OUTPUTS: &[&str] = &["flake", "perSystem"];
+
+/// The kernels a system's name ends with, after its CPU and a hyphen, as
+/// flakes write their outputs' systems.
+const SYSTEM_KERNELS: &[&str] = &["linux", "darwin", "freebsd", "netbsd", "openbsd"];
+
 pub struct Nix;
 
 impl Provider for Nix {
@@ -37,7 +49,7 @@ impl Provider for Nix {
     }
 
     fn selectors(&self) -> &'static [&'static str] {
-        &["dev-shell-command", "attribute", "map-attribute"]
+        &["dev-shell-command", "attribute", "map-attribute", "app"]
     }
 
     fn shape(&self, selector: &str) -> Shape {
@@ -55,6 +67,15 @@ impl Provider for Nix {
             return Ok(Box::new(NixQuery::DevShellCommand {
                 file: normalize(file),
                 command: (*command).to_owned(),
+            }));
+        }
+        if selector == "app" {
+            let [file, name] = arguments else {
+                return Err(format!("`{NAME}.{selector}` takes a file and a name"));
+            };
+            return Ok(Box::new(NixQuery::App {
+                file: normalize(file),
+                name: (*name).to_owned(),
             }));
         }
         let [file, path] = arguments else {
@@ -85,6 +106,11 @@ enum NixQuery {
         file: PathBuf,
         path: Vec<String>,
     },
+    /// What `nix run` runs for a name.
+    App {
+        file: PathBuf,
+        name: String,
+    },
 }
 
 impl Query for NixQuery {
@@ -92,6 +118,7 @@ impl Query for NixQuery {
         match self {
             Self::DevShellCommand { file, command } => find_dev_shell_command(&workspace.root, file, command),
             Self::Attribute { file, path } | Self::MapAttribute { file, path } => find_attribute(&workspace.root, file, path),
+            Self::App { file, name } => find_app(&workspace.root, file, name),
         }
     }
 
@@ -178,6 +205,8 @@ struct Definition {
     /// The outermost attribute set its path is counted from, or the `let`
     /// binding it: the definitions sharing one define one value.
     root: TextRange,
+    /// Whether its root is a `let`.
+    bound_by_let: bool,
     /// How many names of its path the definition writes itself, the rest
     /// being those of the attribute sets it is nested in.
     own: usize,
@@ -202,6 +231,7 @@ fn definitions(syntax: &SyntaxNode) -> Vec<Definition> {
             found.push(Definition {
                 path,
                 root: root.text_range(),
+                bound_by_let: ast::LetIn::can_cast(root.kind()),
                 own: names.len(),
                 range: TextRange::new(attrpath.syntax().text_range().start(), value.syntax().text_range().end()),
             });
@@ -222,6 +252,7 @@ fn definitions(syntax: &SyntaxNode) -> Vec<Definition> {
             found.push(Definition {
                 path,
                 root: root.text_range(),
+                bound_by_let: ast::LetIn::can_cast(root.kind()),
                 own: 1,
                 range: attribute.syntax().text_range(),
             });
@@ -241,17 +272,88 @@ fn find_attribute(root: &Path, file: &Path, path: &[String]) -> Vec<Span> {
     let Some((text, syntax)) = parse(root, file) else {
         return Vec::new();
     };
+    let found = definitions(&syntax);
+    let defining = found.iter().filter(|definition| defines(definition, path));
+    spans_of(&text, file, merge_by_root(defining).into_iter())
+}
+
+/// Whether [`definition`](lynk:rust.argument) defines the attribute at
+/// [`path`](lynk:rust.argument), its own names holding the last name of
+/// the path.
+fn defines(definition: &Definition, path: &[String]) -> bool {
+    definition.path.starts_with(path) && definition.path.len() - definition.own < path.len()
+}
+
+/// The ranges of [`definitions`](lynk:rust.argument), those sharing a
+/// root merged into one, from the first to the end of the last.
+fn merge_by_root<'a>(definitions: impl Iterator<Item = &'a Definition>) -> Vec<TextRange> {
     let mut merged: Vec<(TextRange, TextRange)> = Vec::new();
-    let defining = definitions(&syntax)
-        .into_iter()
-        .filter(|definition| definition.path.starts_with(path) && definition.path.len() - definition.own < path.len());
-    for definition in defining {
+    for definition in definitions {
         match merged.iter_mut().find(|(root, _)| *root == definition.root) {
             Some((_, range)) => *range = range.cover(definition.range),
             None => merged.push((definition.root, definition.range)),
         }
     }
-    spans_of(&text, file, merged.into_iter().map(|(_, range)| range))
+    merged.into_iter().map(|(_, range)| range).collect()
+}
+
+/// The spans of what `nix run` runs for [`name`](lynk:rust.argument) in
+/// the Nix file at [`file`](lynk:rust.argument), relative to
+/// [`root`](lynk:rust.argument): the definitions of the attribute named so
+/// under the first of the outputs it looks a name up in that holds one,
+/// merged as for an attribute.
+fn find_app(root: &Path, file: &Path, name: &str) -> Vec<Span> {
+    let Some((text, syntax)) = parse(root, file) else {
+        return Vec::new();
+    };
+    let found = definitions(&syntax);
+    let ranges = RUNNABLE_OUTPUTS
+        .iter()
+        .map(|output| merge_by_root(found.iter().filter(|definition| defines_runnable(definition, output, name))))
+        .find(|ranges| !ranges.is_empty())
+        .unwrap_or_default();
+    spans_of(&text, file, ranges.into_iter())
+}
+
+/// Whether [`definition`](lynk:rust.argument) defines the runnable
+/// [`name`](lynk:rust.argument) of the flake output
+/// [`output`](lynk:rust.argument), as
+/// [`lynk::providers::nix::runnable`](lynk:rust.item) reads its path. A
+/// `let` binds no output.
+fn defines_runnable(definition: &Definition, output: &str, name: &str) -> bool {
+    if definition.bound_by_let {
+        return false;
+    }
+    let Some((found, length)) = runnable(&definition.path) else {
+        return false;
+    };
+    found == output && definition.path[length - 1] == name && defines(definition, &definition.path[..length])
+}
+
+/// The flake output a definition's [`path`](lynk:rust.argument) is under
+/// and the length of the path of the runnable it defines, ending with its
+/// name: `<output>.<system>.<name>` as a flake writes its outputs, or
+/// `<output>.<name>` as a function building one system's outputs writes
+/// them, either under an attribute flake-parts writes outputs under.
+fn runnable(path: &[String]) -> Option<(&str, usize)> {
+    let prefix = usize::from(path.first().is_some_and(|first| FLAKE_PARTS_OUTPUTS.contains(&first.as_str())));
+    let [output, next, after @ ..] = &path[prefix..] else {
+        return None;
+    };
+    if !RUNNABLE_OUTPUTS.contains(&output.as_str()) {
+        return None;
+    }
+    if is_system(next) && !after.is_empty() {
+        return Some((output, prefix + 3));
+    }
+    Some((output, prefix + 2))
+}
+
+/// Whether [`name`](lynk:rust.argument) names a system, a CPU and a kernel
+/// joined by a hyphen.
+fn is_system(name: &str) -> bool {
+    name.rsplit_once('-')
+        .is_some_and(|(cpu, kernel)| !cpu.is_empty() && SYSTEM_KERNELS.contains(&kernel))
 }
 
 /// The names of the attributes directly under the attribute at
@@ -515,6 +617,49 @@ in {
 }
 "#;
         assert!(command_spans("lookalike", text, "script").is_empty());
+    }
+
+    fn app_spans(test: &str, text: &str, name: &str) -> Vec<String> {
+        let root = std::env::temp_dir().join(format!("lynk-nix-{test}-{}", std::process::id()));
+        std::fs::create_dir_all(&root).unwrap();
+        std::fs::write(root.join("flake.nix"), text).unwrap();
+        let spans = find_app(&root, Path::new("flake.nix"), name)
+            .iter()
+            .map(ToString::to_string)
+            .collect();
+        std::fs::remove_dir_all(root).unwrap();
+        spans
+    }
+
+    #[test]
+    fn finds_what_nix_run_runs() {
+        let text = r#"{
+  outputs = {nixpkgs, ...}: let
+    apps.ignored = 1;
+  in {
+    apps.x86_64-linux.run = {
+      type = "app";
+      program = "run";
+    };
+    apps.aarch64-darwin.run.program = "run";
+    packages.x86_64-linux.run = 1;
+    packages.x86_64-linux.default = 2;
+    flake.apps.x86_64-linux.flake-parts = 3;
+    perSystem.apps.per-system = 4;
+    apps.build.program = 5;
+  };
+}
+"#;
+        let spans = |name| app_spans("app", text, name);
+        assert_eq!(spans("run"), vec!["flake.nix:5:5-9:43"]);
+        assert_eq!(spans("default"), vec!["flake.nix:11:5-11:37"]);
+        assert_eq!(spans("flake-parts"), vec!["flake.nix:12:5-12:43"]);
+        assert_eq!(spans("per-system"), vec!["flake.nix:13:5-13:33"]);
+        assert_eq!(spans("build"), vec!["flake.nix:14:5-14:26"]);
+        assert!(spans("ignored").is_empty());
+        assert!(spans("program").is_empty());
+        assert!(spans("x86_64-linux").is_empty());
+        assert!(Nix.query("app", &["flake.nix"], None).is_err());
     }
 
     #[test]

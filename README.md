@@ -198,9 +198,10 @@ writes them, starting with the crate:
 | `protobuf.message` | `<file> <message>` | the message, from its keyword to its closing brace; a nested message's as `<outer>.<message>`, without the package |
 | `protobuf.map-field` | `<file> <message>` | its fields, those of its `oneof`s included where they are declared; a nested message's as `<outer>.<message>` |
 | `cargo.dependency` | `<manifest> <dependency>` | the dependencies declared under that key in its package's, platforms' and workspace's tables, from the key or the table's header to the end of its last value |
-| `nix.dev-shell-command` | `<file> <command>` | the places building a command that a dev shell lists among what it puts on `PATH`: a function the file does not define applied to the command's name, as a string or the `name` of an attribute set, the file's names being followed and its functions and common list functions applied, so a name may be interpolated from a list; from the name of the binding holding it to the end of its value, or the application alone when it is not bound |
-| `nix.attribute` | `<file> <attribute path>` | the bindings defining the attribute, its path written as Nix writes it and counted from the outermost attribute set its bindings are nested in, through parentheses and `let` bodies, or from the `let` binding it; from the name of the first binding writing its last name to the end of the value of the last, or the name it inherits, once per outermost attribute set or `let` |
-| `nix.map-attribute` | `<file> <attribute path>` | the names of the attributes directly under it, as `nix.attribute` finds them, in the order they are first defined |
+| `nix.dev-shell-command` | `<file> <command>` | where a command a dev shell puts on `PATH` is built: a function the file does not define applied to its name, followed through the file's names, functions and common list functions; from the binding's name to the end of its value, or the application alone |
+| `nix.attribute` | `<file> <attribute path>` | the bindings defining it, its path as Nix writes it, counted from the outermost attribute set or the `let` binding it; one span per outermost set or `let`, from the first binding to the end of the last |
+| `nix.map-attribute` | `<file> <attribute path>` | the attributes directly under it, in the order they are first defined |
+| `nix.app` | `<file> <name>` | what `nix run .#<name>` runs: the attribute with that name under the first flake output `nix run` tries that has one, under a system or written for one system, spanning as `nix.attribute` does |
 | `lynk.selectors` | none | a complete map of these selectors |
 | `lynk.self` | none | the tool itself |
 | `lynk.lint` | none | its command checking every link |

@@ -9,8 +9,9 @@ tree, evaluating it without Nix. One selector names a command of a
 development environment the way a reader types it, by the name it has on
 `PATH`, and resolves to where it is built
 ([`lynk::providers::nix::find_dev_shell_command`](lynk:rust.item)).
-The others name an attribute of a file by its attribute path, or map the
-attributes under one.
+Another names what `nix run` runs by the name it is given. The others
+name an attribute of a file by its attribute path, or map the attributes
+under one.
 
 A dev shell is either a call to one of the functions building one
 ([`lynk::providers::nix::DEV_SHELL_FUNCTIONS`](lynk:rust.item)),
@@ -61,6 +62,18 @@ The same path counted from different attribute sets, such as each one
 given to a function merging them, is as many targets, and a link to it
 is ambiguous.
 
+What `nix run` runs is an attribute found the same way, under the first
+of the flake outputs it tries that holds the name
+([`lynk::providers::nix::RUNNABLE_OUTPUTS`](lynk:rust.item),
+[`lynk::providers::nix::find_app`](lynk:rust.item)). Its path is read
+as a flake writes it, under a system, or as the functions building one
+system's outputs write it, without one, either possibly under the
+attributes flake-parts writes outputs under
+([`lynk::providers::nix::runnable`](lynk:rust.item)). A system is told
+apart from a name by the kernel ending it
+([`lynk::providers::nix::SYSTEM_KERNELS`](lynk:rust.item)), and a `let`
+binds no output.
+
 ## Why
 
 [`lynk lint`](lynk:lynk.lint) runs before every change, so reading a
@@ -85,6 +98,10 @@ client's settings. Those are where a reader edits them, so an attribute
 links to where it is written rather than to the option it becomes once
 modules merge, which only evaluating every module could tell.
 
+Text telling the reader to `nix run` something names it as they type
+it, so the link names it the same way, and fails when it no longer runs
+anything, whichever output used to hold it.
+
 ## Alternatives
 
 - **`nix eval`** of the dev shell's inputs: exact, but needs Nix, fetches
@@ -106,6 +123,9 @@ modules merge, which only evaluating every module could tell.
   a path would then name a value rather than where it is written, and
   links could not tell which binding of a merged attribute set they
   point at.
+- **Linking apps with `nix.attribute`**: needs the output and the
+  system in the path, which the reader never types, and fails when the
+  name moves to another output `nix run` still finds it in.
 - **Paths counted from the file's root expression only**: one path per
   attribute, but `let` bindings and the attribute sets of a module's
   function body would need prefixes no reader writes.
