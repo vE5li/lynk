@@ -10,7 +10,7 @@ pub struct Problem {
 
 impl Problem {
     /// Reads one line of the lint's output. Its other lines, like the
-    /// places an ambiguous link points at and the final count, give `None`.
+    /// places an ambiguous link points at and the final summary, give `None`.
     pub fn parse(line: &str) -> Option<Self> {
         if line.starts_with(char::is_whitespace) {
             return None;

@@ -33,7 +33,8 @@ is the nearest directory up holding `.jj` or `.git`. `lynk --version`
 prints its version.
 
 <!-- lynk rust.map-variant-snake-case lynk::command::Command -->
-- `lint`: checks every link of the repository.
+- `lint`: checks every link of the repository, printing each problem
+  and their count, or how many links it checked when there is none.
 - `resolve`: resolves a link to the spans it points at, with their first
   line.
 - `backlinks`: lists every place linking to the spans a link points at.

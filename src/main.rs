@@ -136,6 +136,9 @@ fn lint(workspace: &Workspace) -> ExitCode {
         return ExitCode::FAILURE;
     }
 
+    let link_count: usize = workspace.documents.iter().map(|linked| linked.links.len()).sum();
+    let file_count = workspace.documents.len();
+    println!("no errors, {link_count} link(s) checked in {file_count} file(s)");
     ExitCode::SUCCESS
 }
 
