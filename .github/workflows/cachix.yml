@@ -1,0 +1,22 @@
+# Kept apart from the CI workflow, which repository-manager overwrites.
+name: Cachix
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  push:
+    name: Push to Cachix
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: cachix/install-nix-action@v31
+      - uses: cachix/cachix-action@v17
+        with:
+          name: lynk
+          authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
+      - name: Build lynk
+        run: nix build --print-build-logs .#packages.x86_64-linux.default

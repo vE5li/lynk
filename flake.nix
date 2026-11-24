@@ -1,4 +1,11 @@
 {
+  # Offers the binary cache to whoever builds this flake directly. Flakes that
+  # take it as an input have to add the cache themselves.
+  nixConfig = {
+    extra-substituters = ["https://lynk.cachix.org"];
+    extra-trusted-public-keys = ["lynk.cachix.org-1:V3B7U9dBI5tqI+ort0xxOpa7kfxQK+g1t3r7VxYLrh8="];
+  };
+
   inputs = {
     crane = {
       url = "github:ipetkov/crane";
