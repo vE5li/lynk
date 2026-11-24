@@ -1,4 +1,5 @@
-//! The values of Rust literals, compared with the values links state.
+//! The values of Rust literals, compared with the values links state;
+//! Nix literals are read into the same values.
 
 use std::fmt;
 
@@ -77,7 +78,7 @@ impl Literal {
 
     /// The value negated, `None` for one that is not a number. Zero has no
     /// sign, so `-0` is `0`.
-    fn negated(self) -> Option<Self> {
+    pub fn negated(self) -> Option<Self> {
         match self {
             Self::Integer { negative, digits } => Some(Self::Integer {
                 negative: !negative && !digits.trim_start_matches('0').is_empty(),

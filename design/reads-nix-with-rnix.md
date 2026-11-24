@@ -10,8 +10,8 @@ development environment the way a reader types it, by the name it has on
 `PATH`, and resolves to where it is built
 ([`lynk::providers::nix::find_dev_shell_command`](lynk:rust.item)).
 Another names what `nix run` runs by the name it is given. The others
-name an attribute of a file by its attribute path, or map the attributes
-under one.
+name an attribute of a file by its attribute path, maybe with the value
+it is bound to, or map the attributes under one.
 
 A dev shell is either a call to one of the functions building one
 ([`lynk::providers::nix::DEV_SHELL_FUNCTIONS`](lynk:rust.item)),

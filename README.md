@@ -200,6 +200,7 @@ writes them, starting with the crate:
 | `cargo.dependency` | `<manifest> <dependency>` | the dependencies declared under that key in its package's, platforms' and workspace's tables, from the key or the table's header to the end of its last value |
 | `nix.dev-shell-command` | `<file> <command>` | where a command a dev shell puts on `PATH` is built: a function the file does not define applied to its name, followed through the file's names, functions and common list functions; from the binding's name to the end of its value, or the application alone |
 | `nix.attribute` | `<file> <attribute path>` | the bindings defining it, its path as Nix writes it, counted from the outermost attribute set or the `let` binding it; one span per outermost set or `let`, from the first binding to the end of the last |
+| `nix.literal` | `<file> <attribute path> <value>` | an attribute, as `nix.attribute` names and spans it, each binding of which gives it a literal stating that value: a string without interpolations, a number or a boolean, maybe negated, compared as `rust.literal` compares values |
 | `nix.map-attribute` | `<file> <attribute path>` | the attributes directly under it, in the order they are first defined |
 | `nix.app` | `<file> <name>` | what `nix run .#<name>` runs: the attribute with that name under the first flake output `nix run` tries that has one, under a system or written for one system, spanning as `nix.attribute` does |
 | `lynk.selectors` | none | a complete map of these selectors |

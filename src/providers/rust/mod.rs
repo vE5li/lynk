@@ -4,7 +4,7 @@
 
 mod comments;
 mod items;
-mod literals;
+pub(crate) mod literals;
 
 use std::path::PathBuf;
 

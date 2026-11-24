@@ -30,6 +30,15 @@ holds the comparison to these rules. [`lynk resolve`](lynk:lynk.resolve)
 resolves a literal like an item, to its definition, and only
 [`lynk lint`](lynk:lynk.lint) compares the value.
 
+A `nix.literal` link does the same for an attribute of a Nix file, named
+by its file and attribute path, and resolves like `nix.attribute`. Each
+binding defining the attribute must give it a literal, maybe negated,
+read into the same values
+([`lynk::providers::nix::literal`](lynk:rust.item)) and compared the
+same way; a binding of an attribute under it, an inherited attribute or
+a string with interpolations has no value to state
+([`lynk::providers::nix::find_values`](lynk:rust.item)).
+
 ## Why
 
 Prose states values the way a reader thinks of them, in base 10 and
@@ -52,3 +61,6 @@ to evaluate them, which the lint does not run.
   the function's literals, and a value repeated in it is ambiguous.
 - **Evaluating constant expressions**: would cover computed values, but
   needs type information and a build, which the lint avoids.
+- **Reading a link's Nix value as Nix writes it**: Nix and Rust write
+  strings, decimal numbers and booleans alike, so one reading of the
+  text serves both, and prose states values without quotes anyway.

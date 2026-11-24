@@ -7,12 +7,13 @@ use std::path::{Path, PathBuf};
 
 mod evaluate;
 
-use rnix::ast::{self, InterpolPart};
+use rnix::ast::{self, AstToken, InterpolPart};
 use rnix::{Root, SyntaxNode, TextRange};
 use rowan::ast::AstNode;
 
 use crate::link::{Member, Shape};
 use crate::location::{LineIndex, Span};
+use crate::providers::rust::literals::Literal;
 use crate::providers::{MemberError, Place, Provider, Query, check_complete_map, normalize};
 use crate::workspace::Workspace;
 
@@ -49,7 +50,7 @@ impl Provider for Nix {
     }
 
     fn selectors(&self) -> &'static [&'static str] {
-        &["dev-shell-command", "attribute", "map-attribute", "app"]
+        &["dev-shell-command", "attribute", "literal", "map-attribute", "app"]
     }
 
     fn shape(&self, selector: &str) -> Shape {
@@ -78,6 +79,16 @@ impl Provider for Nix {
                 name: (*name).to_owned(),
             }));
         }
+        if selector == "literal" {
+            let [file, path, value] = arguments else {
+                return Err(format!("`{NAME}.{selector}` takes a file, an attribute path and a value"));
+            };
+            return Ok(Box::new(NixQuery::Literal {
+                file: normalize(file),
+                path: parse_attribute_path(path)?,
+                value: (*value).to_owned(),
+            }));
+        }
         let [file, path] = arguments else {
             return Err(format!("`{NAME}.{selector}` takes a file and an attribute path"));
         };
@@ -100,6 +111,13 @@ enum NixQuery {
         file: PathBuf,
         path: Vec<String>,
     },
+    /// An attribute, by its path, whose value is a literal stating a
+    /// value.
+    Literal {
+        file: PathBuf,
+        path: Vec<String>,
+        value: String,
+    },
     /// The names of the attributes directly under an attribute path, as
     /// complete map.
     MapAttribute {
@@ -117,7 +135,9 @@ impl Query for NixQuery {
     fn resolve(&self, workspace: &Workspace) -> Vec<Span> {
         match self {
             Self::DevShellCommand { file, command } => find_dev_shell_command(&workspace.root, file, command),
-            Self::Attribute { file, path } | Self::MapAttribute { file, path } => find_attribute(&workspace.root, file, path),
+            Self::Attribute { file, path } | Self::MapAttribute { file, path } | Self::Literal { file, path, .. } => {
+                find_attribute(&workspace.root, file, path)
+            }
             Self::App { file, name } => find_app(&workspace.root, file, name),
         }
     }
@@ -133,6 +153,22 @@ impl Query for NixQuery {
             return Vec::new();
         }
         check_complete_map(members, &names)
+    }
+
+    /// A literal's value is checked at every definition found.
+    fn check_target(&self, workspace: &Workspace) -> Vec<String> {
+        let Self::Literal { file, path, value } = self else {
+            return Vec::new();
+        };
+        let name = path.join(".");
+        find_values(&workspace.root, file, path)
+            .iter()
+            .filter_map(|(span, literal)| match literal {
+                None => Some(format!("`{name}` at {span} is not a literal")),
+                Some(literal) if !literal.matches(value) => Some(format!("`{name}` at {span} is `{literal}`, not `{value}`")),
+                Some(_) => None,
+            })
+            .collect()
     }
 }
 
@@ -211,6 +247,9 @@ struct Definition {
     /// being those of the attribute sets it is nested in.
     own: usize,
     range: TextRange,
+    /// The value a binding gives its path; `None` for an inherited
+    /// attribute.
+    value: Option<ast::Expr>,
 }
 
 /// Every definition of a file whose attribute path is known, in the order
@@ -234,6 +273,7 @@ fn definitions(syntax: &SyntaxNode) -> Vec<Definition> {
                 bound_by_let: ast::LetIn::can_cast(root.kind()),
                 own: names.len(),
                 range: TextRange::new(attrpath.syntax().text_range().start(), value.syntax().text_range().end()),
+                value: Some(value),
             });
             continue;
         }
@@ -255,6 +295,7 @@ fn definitions(syntax: &SyntaxNode) -> Vec<Definition> {
                 bound_by_let: ast::LetIn::can_cast(root.kind()),
                 own: 1,
                 range: attribute.syntax().text_range(),
+                value: None,
             });
         }
     }
@@ -282,6 +323,59 @@ fn find_attribute(root: &Path, file: &Path, path: &[String]) -> Vec<Span> {
 /// the path.
 fn defines(definition: &Definition, path: &[String]) -> bool {
     definition.path.starts_with(path) && definition.path.len() - definition.own < path.len()
+}
+
+/// The span of each definition of the attribute at
+/// [`path`](lynk:rust.argument) in the Nix file at
+/// [`file`](lynk:rust.argument), relative to [`root`](lynk:rust.argument),
+/// with the literal it gives the attribute: `None` for an inherited
+/// attribute, a binding of an attribute under it, or a value that is not a
+/// literal.
+fn find_values(root: &Path, file: &Path, path: &[String]) -> Vec<(Span, Option<Literal>)> {
+    let Some((text, syntax)) = parse(root, file) else {
+        return Vec::new();
+    };
+    let line_index = LineIndex::new(&text);
+    definitions(&syntax)
+        .into_iter()
+        .filter(|definition| defines(definition, path))
+        .map(|definition| {
+            let span = line_index.span(file, usize::from(definition.range.start())..usize::from(definition.range.end()));
+            let literal = definition
+                .value
+                .filter(|_| definition.path.len() == path.len())
+                .and_then(|value| literal(&value));
+            (span, literal)
+        })
+        .collect()
+}
+
+/// The value of an expression that is a literal, maybe negated: a string
+/// without interpolations, an integer, a float, or `true` or `false`;
+/// `None` for any other expression.
+fn literal(expression: &ast::Expr) -> Option<Literal> {
+    match expression {
+        ast::Expr::Str(text) => Some(Literal::Text(plain_string(text)?)),
+        ast::Expr::Literal(literal) => match literal.kind() {
+            ast::LiteralKind::Integer(integer) => {
+                let digits = integer.syntax().text().trim_start_matches('0');
+                Some(Literal::Integer {
+                    negative: false,
+                    digits: if digits.is_empty() { "0" } else { digits }.to_owned(),
+                })
+            }
+            ast::LiteralKind::Float(float) => Some(Literal::Float(float.syntax().text().parse().ok()?)),
+            ast::LiteralKind::Uri(uri) => Some(Literal::Text(uri.syntax().text().to_owned())),
+        },
+        ast::Expr::Ident(identifier) => match identifier.ident_token()?.text() {
+            "true" => Some(Literal::Bool(true)),
+            "false" => Some(Literal::Bool(false)),
+            _ => None,
+        },
+        ast::Expr::Paren(parenthesized) => literal(&parenthesized.expr()?),
+        ast::Expr::UnaryOp(unary) if unary.operator() == Some(ast::UnaryOpKind::Negate) => literal(&unary.expr()?)?.negated(),
+        _ => None,
+    }
 }
 
 /// The ranges of [`definitions`](lynk:rust.argument), those sharing a
@@ -734,6 +828,76 @@ in {
             vec!["default.nix:16:31-16:41", "default.nix:16:46-16:56"],
             vec![],
         ]);
+    }
+
+    #[test]
+    fn finds_the_literal_each_definition_gives_an_attribute() {
+        let values = with_attributes("literal", |root| {
+            let values = |text: &str| -> Vec<(String, Option<Literal>)> {
+                find_values(root, Path::new("default.nix"), &path(text))
+                    .into_iter()
+                    .map(|(span, literal)| (span.to_string(), literal))
+                    .collect()
+            };
+            [
+                values("port"),
+                values("services.web.enable"),
+                values("services.web.port"),
+                values("services.web.settings.log.level"),
+                values("services.web.settings"),
+                values("services.web"),
+            ]
+        });
+        let integer = Literal::Integer {
+            negative: false,
+            digits: "8080".to_owned(),
+        };
+        assert_eq!(values, [
+            vec![("default.nix:2:3-2:13".to_owned(), Some(integer))],
+            vec![("default.nix:6:5-6:17".to_owned(), Some(Literal::Bool(true)))],
+            vec![("default.nix:7:13-7:16".to_owned(), None)],
+            vec![("default.nix:12:5-12:21".to_owned(), None)],
+            vec![("default.nix:9:3-14:3".to_owned(), None)],
+            vec![("default.nix:5:3-8:3".to_owned(), None), ("default.nix:9:3-14:3".to_owned(), None)],
+        ]);
+    }
+
+    #[test]
+    fn reads_literals_maybe_negated() {
+        let value = |source: &str| {
+            let syntax = Root::parse(source).tree().expr().unwrap();
+            literal(&syntax)
+        };
+        assert_eq!(value("\"tool\""), Some(Literal::Text("tool".to_owned())));
+        assert_eq!(value("''\n  tool\n''"), Some(Literal::Text("tool\n".to_owned())));
+        assert_eq!(
+            value("-(007)"),
+            Some(Literal::Integer {
+                negative: true,
+                digits: "7".to_owned()
+            })
+        );
+        assert_eq!(value("1.5e1"), Some(Literal::Float(15.0)));
+        assert_eq!(value("false"), Some(Literal::Bool(false)));
+        assert!(value("-0").unwrap().matches("0"));
+        assert!(value("2.0").unwrap().matches("2"));
+        assert!(value("\"a tool\"").unwrap().matches("a tool"));
+        assert_eq!(value("\"${name}\""), None);
+        assert_eq!(value("-\"tool\""), None);
+        assert_eq!(value("1 + 2"), None);
+        assert_eq!(value("null"), None);
+        assert_eq!(value("./cert.pem"), None);
+    }
+
+    #[test]
+    fn a_literal_takes_its_file_and_path_in_the_title_and_its_value_as_text() {
+        let (query, _) = read_first_link("test.md", "[`8080`](lynk:nix.literal (default.nix services.port))").unwrap();
+        assert_query(query.as_ref(), &NixQuery::Literal {
+            file: PathBuf::from("default.nix"),
+            path: vec!["services".to_owned(), "port".to_owned()],
+            value: "8080".to_owned(),
+        });
+        assert!(Nix.query("literal", &["default.nix", "port"], None).is_err());
     }
 
     #[test]

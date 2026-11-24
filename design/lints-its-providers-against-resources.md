@@ -149,7 +149,7 @@ The crate's flake, and the flake-parts module next to it, build commands
 for its development environment, and each of them is linked here, one
 link per way a command is built and a dev shell lists it, along with
 attributes of the module, one link per way Nix binds an attribute, the
-variables of its environment, and what `nix run` runs, one link per way
+values of some of them, the variables of its environment, and what `nix run` runs, one link per way
 a flake writes it:
 
 <!-- lynk nix.* -->
@@ -183,6 +183,14 @@ a flake writes it:
   - Bound by a `let`:
     [`log-level`](lynk:nix.attribute
       (resources/lynk-client/dev-shells.nix)).
+- literal:
+  - Of an attribute bound with a dotted path, a string, by its content:
+    [`target`](lynk:nix.literal
+      (resources/lynk-client/dev-shells.nix
+      make-shells.default.env.CARGO_TARGET_DIR)).
+  - Of an attribute bound by a `let`, a string written as Nix writes it:
+    [`"info"`](lynk:nix.literal
+      (resources/lynk-client/dev-shells.nix log-level)).
 - map-attribute:
   <!-- lynk nix.map-attribute resources/lynk-client/dev-shells.nix make-shells.default.env -->
   - CARGO_TARGET_DIR: where Cargo builds the client
