@@ -40,15 +40,19 @@ fn run(cli: Cli) -> Result<ExitCode, String> {
             &load_workspace(root)?,
             query_from_command_line(arguments)?.as_ref(),
         )),
-        Command::Backlinks(arguments) => Ok(print_backlinks(
-            &load_workspace(root)?,
-            query_from_command_line(arguments)?.as_ref(),
-        )),
+        Command::Backlinks(arguments) => {
+            print_backlinks(&load_workspace(root)?, query_from_command_line(arguments)?.as_ref());
+            Ok(ExitCode::SUCCESS)
+        }
         Command::Affected { diff } => {
             let changes = diff::Changes::parse(&read_diff(diff)?)?;
-            Ok(print_affected(&load_workspace(root)?, &changes))
+            print_affected(&load_workspace(root)?, &changes);
+            Ok(ExitCode::SUCCESS)
         }
-        Command::Context { words } => Ok(print_context(&load_workspace(root)?, &words.join(" "))),
+        Command::Context { words } => {
+            print_context(&load_workspace(root)?, &words.join(" "));
+            Ok(ExitCode::SUCCESS)
+        }
         // Reads only the files it exports, so it needs the root but not the
         // whole repository.
         Command::Export { directory, output } => {
@@ -152,9 +156,9 @@ fn print_resolved(workspace: &Workspace, query: &dyn Query) -> ExitCode {
     if targets.is_empty() { ExitCode::FAILURE } else { ExitCode::SUCCESS }
 }
 
-fn print_backlinks(workspace: &Workspace, query: &dyn Query) -> ExitCode {
+fn print_backlinks(workspace: &Workspace, query: &dyn Query) {
     let targets: HashSet<Span> = query.resolve(workspace).into_iter().collect();
-    print_links_to(workspace, |target| targets.contains(target))
+    print_links_to(workspace, |target| targets.contains(target));
 }
 
 /// The diff at [`path`](lynk:rust.argument), by default standard input.
@@ -167,14 +171,15 @@ fn read_diff(path: Option<PathBuf>) -> Result<String, String> {
     std::fs::read_to_string(&path).map_err(|error| format!("{}: {error}", path.display()))
 }
 
-fn print_affected(workspace: &Workspace, changes: &diff::Changes) -> ExitCode {
+fn print_affected(workspace: &Workspace, changes: &diff::Changes) {
     print_links_to(workspace, |target| changes.touch(target))
 }
 
 /// Prints every link pointing at a span [`is_target`](lynk:rust.argument)
 /// accepts, failing when there is none.
-fn print_links_to(workspace: &Workspace, is_target: impl Fn(&Span) -> bool) -> ExitCode {
+fn print_links_to(workspace: &Workspace, is_target: impl Fn(&Span) -> bool) {
     let mut found = false;
+
     for linked in &workspace.documents {
         for link in &linked.links {
             let Ok((link_query, _)) = query_of_link(linked, link) else {
@@ -193,10 +198,13 @@ fn print_links_to(workspace: &Workspace, is_target: impl Fn(&Span) -> bool) -> E
             );
         }
     }
-    if found { ExitCode::SUCCESS } else { ExitCode::FAILURE }
+
+    if !found {
+        eprintln!("no links found");
+    }
 }
 
-fn print_context(workspace: &Workspace, query: &str) -> ExitCode {
+fn print_context(workspace: &Workspace, query: &str) {
     const FOUND_LIMIT: usize = 10;
 
     let mut found = context::search(workspace, query);
@@ -218,7 +226,10 @@ fn print_context(workspace: &Workspace, query: &str) -> ExitCode {
         };
         println!("{score}\t{}\t{}", result.span, result.title);
     }
-    if found.is_empty() { ExitCode::FAILURE } else { ExitCode::SUCCESS }
+
+    if found.is_empty() {
+        eprintln!("no context found");
+    }
 }
 
 /// The first line of the target, for orientation; empty for directories.
